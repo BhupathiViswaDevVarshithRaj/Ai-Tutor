@@ -1,0 +1,81 @@
+from functools import lru_cache
+from pathlib import Path
+from typing import Annotated, Literal
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+REPO_DIR = BACKEND_DIR.parent
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables / the repo-root .env file."""
+
+    model_config = SettingsConfigDict(
+        env_file=(REPO_DIR / ".env", BACKEND_DIR / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    app_env: Literal["development", "test", "production"] = "development"
+    app_name: str = "AI Tutor Dashboard"
+    api_prefix: str = "/api/v1"
+    # Comma-separated in env (CORS_ORIGINS=http://a,http://b); NoDecode skips JSON parsing.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:5173"]
+    )
+    secret_key: str = "change-me"
+
+    postgres_user: str = "aitutor"
+    postgres_password: str = "aitutor_dev_password"
+    postgres_db: str = "aitutor"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+
+    redis_url: str = "redis://localhost:6379/0"
+
+    health_check_timeout_seconds: float = 2.0
+
+    # --- Auth ---
+    frontend_url: str = "http://localhost:5173"
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 30
+    password_reset_ttl_minutes: int = 30
+    refresh_cookie_name: str = "aitutor_refresh"
+    # Rate limits: attempts per window, keyed by client IP.
+    auth_rate_limit: int = 10
+    auth_rate_window_seconds: int = 60
+
+    # --- Email (optional; console mailer is used when SMTP_HOST is empty) ---
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+
+    @property
+    def cookie_secure(self) -> bool:
+        return self.app_env == "production"
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    settings = Settings()
+    if settings.app_env == "production" and settings.secret_key in ("change-me", ""):
+        raise RuntimeError("SECRET_KEY must be set to a strong random value in production")
+    return settings

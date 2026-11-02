@@ -42,5 +42,14 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 3.7 Isolation tests: another user's IDs return 404 for read, update, delete, write and attach
 - [x] 3.8 Frontend: in-memory access token + auto refresh, AuthProvider, protected routes with `?next=` return, real login/register/forgot/reset pages, user menu + sign out, preferences synced to the account, profile/password/interests in Settings, real lesson lists on Dashboard and History
 
+## UI redesign (branch `ui-redesign`) ✅
+- [x] R.1 Design system: ivory/charcoal pop style, purple/lavender/sun/tangerine/mint tokens, display + body fonts, pop utilities, float/marquee/page-flip keyframes, reduced-motion handling
+- [x] R.2 Illustration library: robot tutor + avatar, books (closed, open with turning page, stack, notebook, cap), phone chat, laptop, tablet, microphone, headphones, speech bubbles, brain, neural net, atom, graph, flask, light bulb, mind map, video thumbnails, whiteboard, trophy, quiz card, globe, vocabulary cards, equation chips
+- [x] R.3 Motion helpers: Float, Parallax, Reveal, CountUp, Marquee
+- [x] R.4 Navigation: grouped floating sidebar with animated active pill, top bar, public site nav with mobile menu
+- [x] R.5 Landing: "LEARN WITHOUT LIMITS." hero with layered parallax scene, marquees, steps, bento features, languages, real-fact counters, CTA
+- [x] R.6 Home dashboard, AI Tutor classroom, new Language Learning page, Mind Maps, Whiteboard, Video Studio, Voice Learning, Quizzes, My Progress, Lesson History, Profile & Settings, auth split layout, 404
+- [x] R.7 Tests updated (76 passing); visual check with Playwright at 1440 px and 390 px, light + dark: no page errors, no horizontal overflow
+
 ## Phases 4–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

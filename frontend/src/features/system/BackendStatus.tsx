@@ -32,9 +32,9 @@ export function BackendStatus() {
     <div role="status" className="space-y-2">
       <p className="flex items-center gap-2 text-sm font-medium">
         {data.status === 'ok' ? (
-          <CircleCheck className="size-4 text-emerald-600" aria-hidden />
+          <CircleCheck className="size-4" aria-hidden />
         ) : (
-          <CircleAlert className="size-4 text-amber-600" aria-hidden />
+          <CircleAlert className="size-4" aria-hidden />
         )}
         Backend {data.status === 'ok' ? 'ready' : 'degraded'}
       </p>
@@ -42,7 +42,7 @@ export function BackendStatus() {
         {Object.entries(data.checks).map(([name, check]) => (
           <li key={name} className="flex justify-between gap-6">
             <span className="capitalize">{name}</span>
-            <span className={check.status === 'ok' ? 'text-emerald-600' : 'text-red-600'}>
+            <span className={check.status === 'ok' ? 'font-semibold' : 'font-semibold text-[#b42318] dark:text-rose'}>
               {check.status === 'ok' ? `ok · ${check.latency_ms} ms` : (check.error ?? 'error')}
             </span>
           </li>

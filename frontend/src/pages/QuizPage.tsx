@@ -1,8 +1,8 @@
-import { ClipboardCheck } from 'lucide-react'
-
 import { PageHeader } from '../components/PageHeader'
 import { PhaseNotice } from '../components/PhaseNotice'
 import { TopicForm } from '../components/TopicForm'
+import { QuizCard, Trophy } from '../components/illustrations/Visual'
+import { Float } from '../components/motion/Motion'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/feedback'
 import { Field, Select } from '../components/ui/form'
@@ -11,8 +11,14 @@ export default function QuizPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
+        eyebrow="Check your understanding"
         title="Quizzes"
-        description="Test your understanding and find the concepts to revisit."
+        description="Short tests with explanations, so you know exactly what to revisit."
+        art={
+          <Float rotate={4}>
+            <QuizCard className="w-full" />
+          </Float>
+        }
       />
       <PhaseNotice phase={13}>
         Multiple-choice and short-answer questions with explanations, scoring and weak-topic
@@ -54,10 +60,10 @@ export default function QuizPage() {
             </TopicForm>
           </CardBody>
         </Card>
-        <Card>
+        <Card tone="lavender">
           <CardHeader title="Quiz history" />
           <EmptyState
-            icon={ClipboardCheck}
+            art={<Trophy className="mx-auto w-24" />}
             title="No quizzes taken yet"
             description="Scores and feedback from your quizzes appear here."
           />

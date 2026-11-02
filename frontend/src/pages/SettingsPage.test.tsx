@@ -13,7 +13,7 @@ const echoPreferences = {
 
 async function openSettings() {
   renderWithProviders(<AppRoutes />, { route: '/app/settings' })
-  await screen.findByRole('heading', { level: 1, name: 'Settings' })
+  await screen.findByRole('heading', { level: 1, name: 'Profile & Settings' })
 }
 
 describe('SettingsPage', () => {

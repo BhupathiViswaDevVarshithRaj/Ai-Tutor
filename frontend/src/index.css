@@ -3,24 +3,28 @@
 /* Class-based dark mode, driven by ThemeProvider (light / dark / system). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Semantic colour tokens. Components use bg-bg, bg-surface, border-line, text-fg, text-muted
-   so light/dark switching happens here rather than via dark: variants everywhere. */
+/* ------------------------------------------------------------------------------------------
+   Semantic tokens. Components use bg-bg, bg-surface, border-line, border-ink, text-fg,
+   text-muted; light/dark switching happens only here.
+   ------------------------------------------------------------------------------------------ */
 :root {
-  --app-bg: #f8fafc;
-  --app-surface: #ffffff;
-  --app-surface-2: #f1f5f9;
-  --app-line: #e2e8f0;
-  --app-fg: #0f172a;
-  --app-muted: #64748b;
+  --app-bg: #fbf6ec; /* warm ivory */
+  --app-surface: #fffdf8;
+  --app-surface-2: #f3ecdd;
+  --app-line: #e6dcc8;
+  --app-ink: #1f1b2d; /* deep charcoal: outlines + hard shadows */
+  --app-fg: #1f1b2d;
+  --app-muted: #6b6478;
 }
 
 .dark {
-  --app-bg: #0b1120;
-  --app-surface: #111827;
-  --app-surface-2: #1e293b;
-  --app-line: #263042;
-  --app-fg: #e5e7eb;
-  --app-muted: #94a3b8;
+  --app-bg: #14111c;
+  --app-surface: #1e1a29;
+  --app-surface-2: #2a2438;
+  --app-line: #3a3349;
+  --app-ink: #050308;
+  --app-fg: #f6f1e7;
+  --app-muted: #aaa2b9;
 }
 
 @theme inline {
@@ -28,26 +32,163 @@
   --color-surface: var(--app-surface);
   --color-surface-2: var(--app-surface-2);
   --color-line: var(--app-line);
+  --color-ink: var(--app-ink);
   --color-fg: var(--app-fg);
   --color-muted: var(--app-muted);
 }
 
 @theme {
-  /* Noto families cover Devanagari, Telugu, Tamil, Gurmukhi and Bengali scripts. */
+  /* Noto families cover Devanagari, Telugu, Tamil, Gurmukhi, Bengali, CJK fall back to system. */
   --font-sans:
-    'Inter', 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Telugu', 'Noto Sans Tamil',
-    'Noto Sans Gurmukhi', 'Noto Sans Bengali', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+    'Plus Jakarta Sans', 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Telugu',
+    'Noto Sans Tamil', 'Noto Sans Gurmukhi', 'Noto Sans Bengali', ui-sans-serif, system-ui,
+    'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  /* Electric purple, with lavender at the light end. */
+  --color-brand-50: #f5f0ff;
+  --color-brand-100: #ebe2ff;
+  --color-brand-200: #d9c8ff;
+  --color-brand-300: #bd9cff;
+  --color-brand-400: #9f6dff;
+  --color-brand-500: #7c3aed;
+  --color-brand-600: #6a26e0;
+  --color-brand-700: #561db8;
+  --color-brand-800: #431791;
+  --color-brand-900: #2e0f66;
+
+  /* Accent palette */
+  --color-lavender: #e4d9ff;
+  --color-sun: #ffe27a;
+  --color-sun-deep: #f5c518;
+  --color-tangerine: #ff7a2f;
+  --color-mint: #8fe3bf;
+  --color-mint-deep: #2fb57f;
+  --color-sky: #9fd3ff;
+  --color-rose: #ffb3c7;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 9s ease-in-out infinite;
+  --animate-wiggle: wiggle 0.5s ease-in-out;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-blink: blink 4s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(var(--float-rotate, 0deg));
+    }
+    50% {
+      transform: translateY(-14px) rotate(calc(var(--float-rotate, 0deg) * -1));
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    25% {
+      transform: rotate(-10deg);
+    }
+    75% {
+      transform: rotate(10deg);
+    }
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes wave {
+    0%,
+    60%,
+    100% {
+      transform: rotate(0);
+    }
+    70% {
+      transform: rotate(-14deg);
+    }
+    85% {
+      transform: rotate(8deg);
+    }
+  }
+  @keyframes pageflip {
+    0% {
+      transform: scaleX(1);
+      opacity: 0;
+    }
+    10%,
+    20% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scaleX(-1);
+      opacity: 1;
+    }
+    60%,
+    100% {
+      transform: scaleX(-1);
+      opacity: 0;
+    }
+  }
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
+  @keyframes blink {
+    0%,
+    92%,
+    100% {
+      transform: scaleY(1);
+    }
+    95% {
+      transform: scaleY(0.1);
+    }
+  }
+}
+
+/* Game-inspired "pop" surfaces: ink outline + hard offset shadow. */
+@utility pop {
+  border: 2px solid var(--app-ink);
+  box-shadow: 4px 4px 0 0 var(--app-ink);
+}
+@utility pop-sm {
+  border: 2px solid var(--app-ink);
+  box-shadow: 2px 2px 0 0 var(--app-ink);
+}
+@utility pop-lg {
+  border: 2px solid var(--app-ink);
+  box-shadow: 7px 7px 0 0 var(--app-ink);
+}
+/* Lift on hover, press on active. */
+@utility pop-interactive {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  &:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 0 var(--app-ink);
+  }
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 0 var(--app-ink);
+  }
+}
+
+@utility bg-dots {
+  background-image: radial-gradient(var(--app-line) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+@utility bg-grid {
+  background-image:
+    linear-gradient(var(--app-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--app-line) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 html {
@@ -60,4 +201,26 @@ html.dark {
 
 body {
   @apply bg-bg font-sans text-fg antialiased;
+}
+
+h1,
+h2,
+h3 {
+  @apply font-display;
+}
+
+::selection {
+  background: var(--color-sun);
+  color: #1f1b2d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

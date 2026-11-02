@@ -66,7 +66,7 @@ describe('RegisterPage', () => {
     await screen.findByRole('heading', { name: 'Create your account' })
     await fillForm(user)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /what shall we learn today/i })).toBeInTheDocument()
     expect(api.find('POST /auth/register')[0].body).toEqual({
       full_name: 'Asha Rao',
       email: 'asha@example.com',

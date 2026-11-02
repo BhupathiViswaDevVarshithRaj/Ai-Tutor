@@ -1,8 +1,10 @@
-import { AudioLines, Mic, Square } from 'lucide-react'
+import { Mic, Square } from 'lucide-react'
 
 import { usePreferences } from '../app/preferences-context'
 import { PageHeader } from '../components/PageHeader'
 import { PhaseNotice } from '../components/PhaseNotice'
+import { Headphones, SpeechWaves } from '../components/illustrations/Audio'
+import { Float } from '../components/motion/Motion'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/feedback'
@@ -15,10 +17,16 @@ export default function VoiceTutorPage() {
   const { language } = usePreferences()
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        title="Voice Tutor"
-        description={`Speak your question and hear the answer · ${languageLabel(language)}`}
+        eyebrow="Speak & listen"
+        title="Voice Learning"
+        description={`Ask out loud and hear your tutor answer · ${languageLabel(language)}`}
+        art={
+          <Float rotate={-4}>
+            <Headphones className="w-full" />
+          </Float>
+        }
       />
       <PhaseNotice phase={8}>
         Speech recognition (Phase 6) and speech output (Phase 7) join the tutor in a live voice
@@ -27,21 +35,29 @@ export default function VoiceTutorPage() {
       </PhaseNotice>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <Card className="flex flex-col items-center justify-center gap-6 px-6 py-12">
+        <Card tone="ink" className="relative flex min-h-[22rem] flex-col items-center justify-center gap-6 overflow-hidden px-6 py-12">
+          <div className="relative grid place-items-center" aria-hidden>
+            <span className="absolute size-44 rounded-full border-2 border-[#fbf6ec]/15" />
+            <span className="absolute size-60 rounded-full border-2 border-[#fbf6ec]/10" />
+            <span className="absolute size-76 rounded-full border-2 border-[#fbf6ec]/5" />
+          </div>
           <Button
+            variant="sun"
             disabled
             aria-label="Start speaking"
-            className="size-24 rounded-full"
+            className="relative size-28 rounded-full shadow-[6px_6px_0_0_#7c3aed]"
           >
-            <Mic className="size-10" aria-hidden />
+            <Mic className="size-12" aria-hidden />
           </Button>
-          <p className="text-sm text-muted">Press the microphone and ask your question.</p>
-          <Button variant="secondary" disabled>
+          <p className="relative text-center text-[#fbf6ec]/80">
+            Press the microphone and ask your question.
+          </p>
+          <Button variant="secondary" disabled className="relative">
             <Square className="size-4" aria-hidden /> Stop
           </Button>
         </Card>
 
-        <Card>
+        <Card tone="sun">
           <CardHeader title="Playback" />
           <CardBody className="space-y-4">
             <Field label="Speech speed">
@@ -69,9 +85,9 @@ export default function VoiceTutorPage() {
       <Card>
         <CardHeader title="Transcript" />
         <EmptyState
-          icon={AudioLines}
+          art={<SpeechWaves className="w-full" />}
           title="Nothing said yet"
-          description="Your words and the tutor's replies appear here, and you can correct transcriptions."
+          description="Your words and the tutor's replies appear here, and you can correct any transcription."
         />
       </Card>
     </div>

@@ -1,6 +1,6 @@
 # Project Status
 
-**Current phase:** 3 — Backend, database, authentication ✅ complete. ⏸ **Awaiting your approval** before Phase 4 (AI tutor).
+**Current phase:** 3 complete (committed `f8155ab` on `main`). UI redesign complete on branch `ui-redesign` (not yet committed). ⏸ **Awaiting your approval** before Phase 4 (AI tutor).
 **Last updated:** 2026-11-03
 
 ## Completed
@@ -14,12 +14,14 @@
   - Learning API: lessons and conversations CRUD, message persistence, pagination; strict per-user isolation.
   - Frontend: real sign-up/sign-in/reset flows, protected routes, user menu, preferences saved to the account, Settings → Account (profile, password) and interests, real lesson lists.
 
+- **UI redesign (branch `ui-redesign`):** new visual identity, SVG illustration library, Framer Motion animations, redesigned pages, and a new Language Learning section (UI only). Backend unchanged. See TASKS.md › UI redesign and DECISIONS D-026–D-031.
+
 ## Test results (actually executed, 2026-11-03)
 | Suite | Result |
 |---|---|
 | Backend (`pytest`, real Postgres + Redis test DB) | 44 passed |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 11 files, 75 tests passed |
+| Frontend (`vitest run`, after redesign) | 11 files, 76 tests passed |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Live E2E via curl through the Vite proxy | register 201 → reset request 202 → link found in backend log → confirm 204 → login with new password 200 → old session refresh 401 |
 
@@ -27,7 +29,8 @@
 - Lessons can only be created via the API until the AI tutor (Phase 4) creates them from the UI.
 - No email-address change or account deletion yet.
 - Without SMTP settings, password-reset emails are written to the backend log (dev only).
-- No real-browser (Playwright) run yet; planned for Phase 14.
+- Playwright is used for visual screenshots; the automated E2E suite is still planned for Phase 14.
+- Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
 - Phase 4: LLM provider abstraction (Anthropic + clearly labelled mock), streaming tutor chat (SSE), lesson plans, level-adaptive and language-aware prompts, summaries, understanding checks. **Needs `ANTHROPIC_API_KEY`** for real responses.

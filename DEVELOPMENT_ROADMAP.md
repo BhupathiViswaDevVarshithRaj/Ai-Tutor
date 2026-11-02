@@ -14,7 +14,7 @@ Each phase ends with a **checkpoint**: tests run and pass (real output reported)
 | 7 | TTS (UI + pipeline) | Playback controls, speed and voice selection, per-language capability gating. |
 | 8 ⏸ | Voice tutor | WebSocket STT → LLM → TTS loop with interruption, reconnection and history. |
 | — ⏸ | **Gnani real integration** | Starts only after you provide official docs and a key. It can be inserted after any phase ≥ 5. |
-| 9 | Multilingual | Language capability matrix, multilingual prompts, per-language evaluation set, subtitle languages. |
+| 9 | Multilingual + language courses | Language capability matrix, multilingual prompts, per-language evaluation set, subtitle languages. **Added by the UI redesign:** world-language courses (DE, FR, ES, JA, KO, ZH, IT, PT; CEFR A1–C2) with vocabulary, grammar, speaking, listening, reading/writing and conversation practice, plus a per-language progress API. |
 | 10 | Mind maps | Schema, generation, validation, React Flow render, collapse/expand, export. Migration 0005. |
 | 11 | Drawing / diagrams | Diagram DSL, SVG renderer with step playback, canvas freehand, export. |
 | 12 ⏸ | Video generation | Worker container (Manim + FFmpeg), templated scenes, narration, subtitles, job progress, player. Migration 0006. |

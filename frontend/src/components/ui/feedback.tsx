@@ -4,14 +4,15 @@ import type { ComponentProps, ReactNode } from 'react'
 
 import { cn } from './cn'
 
-export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger'
+export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'sun'
 
 const badgeTones: Record<BadgeTone, string> = {
-  neutral: 'bg-surface-2 text-muted',
-  brand: 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
-  success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  warning: 'bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
-  danger: 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+  neutral: 'bg-surface-2 text-fg',
+  brand: 'bg-lavender text-brand-800 dark:bg-brand-500/25 dark:text-brand-200',
+  success: 'bg-mint text-[#0f3d2a] dark:bg-mint-deep/25 dark:text-mint',
+  warning: 'bg-sun text-[#3d2f00] dark:bg-sun/20 dark:text-sun',
+  sun: 'bg-sun text-[#3d2f00] dark:bg-sun/20 dark:text-sun',
+  danger: 'bg-rose text-[#5c0f24] dark:bg-rose/20 dark:text-rose',
 }
 
 export function Badge({
@@ -22,7 +23,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        'inline-flex items-center gap-1 rounded-full border-[1.5px] border-ink/80 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap',
         badgeTones[tone],
         className,
       )}
@@ -46,10 +47,8 @@ export function Alert({
     <div
       role={tone === 'error' ? 'alert' : 'status'}
       className={cn(
-        'flex gap-2 rounded-lg border p-3 text-sm',
-        tone === 'error'
-          ? 'border-red-300/70 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
-          : 'border-emerald-300/70 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+        'pop-sm flex gap-2 rounded-2xl p-3 text-sm text-[#1f1b2d]',
+        tone === 'error' ? 'bg-rose' : 'bg-mint',
         className,
       )}
     >
@@ -77,17 +76,20 @@ export function PageSpinner() {
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn('animate-pulse rounded-md bg-surface-2', className)} />
+  return <div aria-hidden className={cn('animate-pulse rounded-2xl bg-surface-2', className)} />
 }
 
+/** Empty state. Pass an `art` illustration for the playful variant, or an `icon`. */
 export function EmptyState({
   icon: Icon,
+  art,
   title,
   description,
   action,
   className,
 }: {
-  icon: LucideIcon
+  icon?: LucideIcon
+  art?: ReactNode
   title: string
   description?: string
   action?: ReactNode
@@ -95,10 +97,16 @@ export function EmptyState({
 }) {
   return (
     <div className={cn('flex flex-col items-center px-4 py-10 text-center', className)}>
-      <span className="mb-3 rounded-full bg-surface-2 p-3">
-        <Icon className="size-6 text-muted" aria-hidden />
-      </span>
-      <p className="font-medium">{title}</p>
+      {art ? (
+        <div className="mb-4 w-40 max-w-full">{art}</div>
+      ) : (
+        Icon && (
+          <span className="pop-sm mb-4 rounded-2xl bg-lavender p-3 text-[#1f1b2d]">
+            <Icon className="size-6" aria-hidden />
+          </span>
+        )
+      )}
+      <p className="font-display text-lg font-bold">{title}</p>
       {description && <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>

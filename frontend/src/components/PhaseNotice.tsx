@@ -6,12 +6,14 @@ export function PhaseNotice({ phase, children }: { phase: number; children: Reac
   return (
     <div
       role="note"
-      className="flex gap-3 rounded-lg border border-amber-300/70 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+      className="pop-sm flex gap-3 rounded-2xl bg-sun p-4 text-sm text-[#1f1b2d] dark:bg-[#4a3f12] dark:text-fg"
     >
-      <Construction className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span className="grid size-8 shrink-0 place-items-center rounded-xl border-2 border-ink bg-surface text-fg">
+        <Construction className="size-4" aria-hidden />
+      </span>
       <div>
-        <p className="font-medium">Coming in Phase {phase}</p>
-        <p className="mt-0.5 opacity-90">{children}</p>
+        <p className="font-display font-bold">Coming in Phase {phase}</p>
+        <p className="mt-0.5 opacity-85">{children}</p>
       </div>
     </div>
   )

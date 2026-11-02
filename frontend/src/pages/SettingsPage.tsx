@@ -1,7 +1,9 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 
+import { useAuth } from '../app/auth-context'
 import { usePreferences } from '../app/preferences-context'
+import { RobotAvatar } from '../components/illustrations/Robot'
 import { useTheme } from '../app/theme-context'
 import type { Theme } from '../app/theme-context'
 import { PageHeader } from '../components/PageHeader'
@@ -128,12 +130,41 @@ function SystemSettings() {
   )
 }
 
+function ProfileCard() {
+  const { user } = useAuth()
+  if (!user) return null
+  const initials = user.full_name
+    .trim()
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+  const since = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(
+    new Date(user.created_at),
+  )
+  return (
+    <Card tone="lavender" className="flex flex-wrap items-center gap-5 p-6">
+      <span className="pop grid size-20 place-items-center rounded-[26px] bg-sun font-display text-3xl font-extrabold text-[#1f1b2d]">
+        {initials || '?'}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-display text-2xl font-extrabold">{user.full_name}</p>
+        <p className="truncate text-sm opacity-75">{user.email}</p>
+        <p className="mt-1 text-xs font-semibold opacity-60">Learning since {since}</p>
+      </div>
+      <RobotAvatar className="hidden size-16 sm:block" />
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState<TabId>('learning')
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader title="Settings" description="Personalise how you learn." />
+      <PageHeader eyebrow="Profile" title="Profile & Settings" description="Personalise how you learn." />
+      <ProfileCard />
       <Card>
         <CardBody>
           <Tabs<TabId>

@@ -41,7 +41,7 @@ export function Tabs<T extends string>({ label, tabs, value, onChange }: TabsPro
         role="tablist"
         aria-label={label}
         onKeyDown={onKeyDown}
-        className="flex gap-1 overflow-x-auto border-b border-line"
+        className="flex gap-1 overflow-x-auto rounded-full border-2 border-line bg-surface-2/60 p-1"
       >
         {tabs.map((tab) => {
           const selected = tab.id === value
@@ -56,10 +56,10 @@ export function Tabs<T extends string>({ label, tabs, value, onChange }: TabsPro
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(tab.id)}
               className={cn(
-                '-mb-px border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
+                'rounded-full border-2 px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors',
                 selected
-                  ? 'border-brand-600 text-brand-700 dark:text-brand-300'
-                  : 'border-transparent text-muted hover:text-fg',
+                  ? 'border-ink bg-[#1f1b2d] text-[#fbf6ec] dark:bg-brand-500'
+                  : 'border-transparent text-muted hover:bg-surface-2 hover:text-fg',
               )}
             >
               {tab.label}

@@ -30,6 +30,6 @@ describe('Button', () => {
 
   it('applies variant styles', () => {
     render(<Button variant="danger">Delete</Button>)
-    expect(screen.getByRole('button', { name: 'Delete' }).className).toContain('bg-red-600')
+    expect(screen.getByRole('button', { name: 'Delete' }).className).toContain('bg-tangerine')
   })
 })

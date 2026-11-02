@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
@@ -12,11 +12,12 @@ import {
 } from '../test/utils'
 import { AppRoutes } from './AppRoutes'
 
-const h1 = (name: string) => screen.findByRole('heading', { level: 1, name })
+const h1 = (name: string | RegExp) => screen.findByRole('heading', { level: 1, name })
+const HOME = /what shall we learn today/i
 
 describe('AppRoutes (signed out)', () => {
   it.each([
-    ['/', 'A personal AI tutor for anything you want to learn'],
+    ['/', 'LEARN WITHOUT LIMITS.'],
     ['/login', 'Welcome back'],
     ['/register', 'Create your account'],
     ['/forgot-password', 'Reset your password'],
@@ -65,17 +66,18 @@ describe('AppRoutes (signed out)', () => {
 })
 
 describe('AppRoutes (signed in)', () => {
-  it.each([
-    ['/app', 'Dashboard'],
+  it.each<[string, string | RegExp]>([
+    ['/app', HOME],
     ['/app/tutor', 'AI Tutor'],
-    ['/app/voice', 'Voice Tutor'],
+    ['/app/languages', 'Language Learning'],
+    ['/app/voice', 'Voice Learning'],
     ['/app/videos', 'Video Studio'],
     ['/app/mind-maps', 'Mind Maps'],
     ['/app/whiteboard', 'Whiteboard'],
     ['/app/quizzes', 'Quizzes'],
-    ['/app/progress', 'Learning Progress'],
+    ['/app/progress', 'My Progress'],
     ['/app/history', 'Lesson History'],
-    ['/app/settings', 'Settings'],
+    ['/app/settings', 'Profile & Settings'],
   ])('%s renders "%s"', async (path, heading) => {
     signedInApi()
     renderWithProviders(<AppRoutes />, { route: path })
@@ -85,8 +87,7 @@ describe('AppRoutes (signed in)', () => {
   it('sends signed-in users away from the sign-in page', async () => {
     signedInApi()
     renderWithProviders(<AppRoutes />, { route: '/login' })
-    expect(await h1('Dashboard')).toBeInTheDocument()
-    expect(screen.getByText(/Welcome, Asha/)).toBeInTheDocument()
+    expect(await h1(/Hi Asha, what shall we learn today/)).toBeInTheDocument()
   })
 
   it('marks the current section as active in the sidebar', async () => {
@@ -98,25 +99,29 @@ describe('AppRoutes (signed in)', () => {
       'aria-current',
       'page',
     )
-    expect(within(nav).getAllByRole('link')).toHaveLength(10)
+    expect(within(nav).getAllByRole('link')).toHaveLength(11)
   })
 
   it('opens the mobile navigation drawer and closes it on Escape and on navigate', async () => {
     const user = userEvent.setup()
     signedInApi()
     renderWithProviders(<AppRoutes />, { route: '/app' })
-    await h1('Dashboard')
+    await h1(HOME)
 
     await user.click(screen.getByRole('button', { name: 'Open navigation' }))
     expect(screen.getByRole('dialog', { name: 'Navigation' })).toBeInTheDocument()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog', { name: 'Navigation' })).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Navigation' })).not.toBeInTheDocument(),
+    )
 
     await user.click(screen.getByRole('button', { name: 'Open navigation' }))
     const drawer = screen.getByRole('dialog', { name: 'Navigation' })
     await user.click(within(drawer).getByRole('link', { name: /Quizzes/ }))
     expect(await h1('Quizzes')).toBeInTheDocument()
-    expect(screen.queryByRole('dialog', { name: 'Navigation' })).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Navigation' })).not.toBeInTheDocument(),
+    )
   })
 
   it('keeps unbuilt feature actions disabled and labelled with their phase', async () => {
@@ -136,7 +141,7 @@ describe('AppRoutes (signed in)', () => {
     await h1('AI Tutor')
     await user.selectOptions(screen.getByRole('combobox', { name: 'Tutor language' }), 'ta')
 
-    expect(screen.getByText('தமிழ் (Tamil)')).toBeInTheDocument()
+    expect(screen.getByText('தமிழ் (Tamil)', { selector: 'span' })).toBeInTheDocument()
     expect(api.find('PATCH /users/me/preferences')[0].body).toEqual({ preferred_language: 'ta' })
   })
 
@@ -188,7 +193,7 @@ describe('AppRoutes (signed in)', () => {
     const user = userEvent.setup()
     const api = signedInApi()
     renderWithProviders(<AppRoutes />, { route: '/app' })
-    await h1('Dashboard')
+    await h1(HOME)
 
     await user.click(screen.getByRole('button', { name: 'Account menu for Asha Rao' }))
     await user.click(screen.getByRole('menuitem', { name: 'Sign out' }))

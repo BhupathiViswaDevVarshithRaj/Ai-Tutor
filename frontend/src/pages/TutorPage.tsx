@@ -1,18 +1,22 @@
-import { Mic, Pause, Play, Send, Sparkles, Square } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { MessagesSquare, Route, Sparkles, Target } from 'lucide-react'
 import { useState } from 'react'
 
 import { usePreferences } from '../app/preferences-context'
 import { PageHeader } from '../components/PageHeader'
-import { PhaseNotice } from '../components/PhaseNotice'
-import { Notebook } from '../components/illustrations/Books'
 import { Lightbulb } from '../components/illustrations/Science'
-import { RobotAvatar, RobotTutor } from '../components/illustrations/Robot'
+import { RobotTutor } from '../components/illustrations/Robot'
 import { Float } from '../components/motion/Motion'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
-import { Badge, EmptyState } from '../components/ui/feedback'
-import { Field, Input, Select, Textarea } from '../components/ui/form'
+import { Alert, Badge } from '../components/ui/feedback'
+import { Field, Input, Select } from '../components/ui/form'
 import { Segmented } from '../components/ui/Segmented'
+import { LessonList } from '../features/lessons/LessonList'
+import { MockBadge } from '../features/tutor/MockBadge'
+import { useStartLesson } from '../features/tutor/useStartLesson'
+import { getAiInfo } from '../lib/api/tutor'
+import { describeError } from '../lib/errors'
 import { LANGUAGES, LEVELS, languageLabel } from '../lib/learning'
 import type { LanguageCode, Level } from '../lib/learning'
 
@@ -23,16 +27,30 @@ const SUGGESTIONS = [
   'The French Revolution',
 ]
 
+const HOW = [
+  { icon: Route, text: 'Builds a lesson plan for your topic and level' },
+  { icon: MessagesSquare, text: 'Explains step by step, with real examples' },
+  { icon: Target, text: 'Checks your understanding and adapts as you go' },
+]
+
 function LessonSetup() {
   const prefs = usePreferences()
+  const start = useStartLesson()
   const [topic, setTopic] = useState('')
   const [level, setLevel] = useState<Level>(prefs.level)
   const [language, setLanguage] = useState<LanguageCode>(prefs.language)
+  const ready = topic.trim().length >= 2
 
   return (
-    <Card>
+    <Card className="relative overflow-hidden">
       <CardBody>
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (ready) start.mutate({ topic: topic.trim(), level, language })
+          }}
+        >
           <Field label="What do you want to learn?">
             {(c) => (
               <Input
@@ -77,94 +95,26 @@ function LessonSetup() {
               )}
             </Field>
           </div>
+          {start.isError && <Alert>{describeError(start.error)}</Alert>}
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled>
+            <Button type="submit" size="lg" disabled={!ready} loading={start.isPending}>
               <Sparkles className="size-4" aria-hidden /> Start lesson
             </Button>
-            <span className="text-sm text-muted">Available in Phase 4</span>
+            {start.isPending && (
+              <span className="text-sm font-semibold text-muted" role="status">
+                Your tutor is building the lesson plan…
+              </span>
+            )}
           </div>
         </form>
       </CardBody>
-    </Card>
-  )
-}
-
-function Classroom() {
-  return (
-    <Card className="flex min-h-[32rem] flex-col overflow-hidden">
-      <header className="flex items-center gap-3 border-b-2 border-ink bg-lavender px-5 py-3 text-[#1f1b2d] dark:bg-brand-900/60 dark:text-fg">
-        <span className="pop-sm grid size-11 place-items-center rounded-2xl bg-sun">
-          <RobotAvatar className="size-9" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-display font-bold">Your tutor</p>
-          <p className="text-xs opacity-70">Not connected yet: the AI tutor goes live in Phase 4</p>
+      {start.isPending && (
+        <div className="pointer-events-none absolute right-4 bottom-2 hidden w-24 md:block" aria-hidden>
+          <Float distance={10} duration={2}>
+            <RobotTutor className="w-full" />
+          </Float>
         </div>
-      </header>
-
-      <div className="relative flex flex-1 items-center justify-center bg-dots" role="log" aria-label="Conversation">
-        <EmptyState
-          art={
-            <Float distance={6}>
-              <RobotTutor className="w-full" />
-            </Float>
-          }
-          title="Your classroom is ready"
-          description="Explanations, examples and quick questions to check your understanding will appear here."
-        />
-      </div>
-
-      <div className="border-t-2 border-ink bg-surface px-4 py-3">
-        <form className="flex items-end gap-2" onSubmit={(e) => e.preventDefault()}>
-          <Button
-            type="button"
-            variant="sun"
-            size="icon"
-            disabled
-            aria-label="Speak your question (voice input, Phase 6)"
-            title="Voice input arrives in Phase 6"
-          >
-            <Mic className="size-5" aria-hidden />
-          </Button>
-          <label htmlFor="tutor-message" className="sr-only">
-            Message the tutor
-          </label>
-          <Textarea
-            id="tutor-message"
-            rows={1}
-            disabled
-            placeholder="Ask your tutor anything…"
-            className="min-h-11 resize-none rounded-full!"
-          />
-          <Button type="submit" size="icon" disabled aria-label="Send message">
-            <Send className="size-4" aria-hidden />
-          </Button>
-        </form>
-        <div
-          className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2/70 px-3 py-2"
-          aria-label="Spoken reply playback (Phase 7)"
-          role="group"
-        >
-          <Button variant="secondary" size="icon" disabled aria-label="Play reply">
-            <Play className="size-4" aria-hidden />
-          </Button>
-          <Button variant="secondary" size="icon" disabled aria-label="Pause reply">
-            <Pause className="size-4" aria-hidden />
-          </Button>
-          <Button variant="secondary" size="icon" disabled aria-label="Stop reply">
-            <Square className="size-4" aria-hidden />
-          </Button>
-          <div className="h-2 min-w-16 flex-1 rounded-full bg-line" aria-hidden />
-          <Select aria-label="Playback speed" disabled defaultValue="1" className="h-9! w-24! rounded-full!">
-            {['0.75', '1', '1.25', '1.5'].map((s) => (
-              <option key={s} value={s}>
-                {s}×
-              </option>
-            ))}
-          </Select>
-          <span className="w-full text-xs text-muted sm:w-auto">Spoken replies: Phase 7</span>
-        </div>
-      </div>
+      )}
     </Card>
   )
 }
@@ -172,6 +122,7 @@ function Classroom() {
 export default function TutorPage() {
   const { language, level } = usePreferences()
   const levelLabel = LEVELS.find((l) => l.id === level)?.label
+  const info = useQuery({ queryKey: ['ai-info'], queryFn: getAiInfo, staleTime: Infinity })
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -183,6 +134,7 @@ export default function TutorPage() {
           <>
             <Badge tone="brand">{levelLabel}</Badge>
             <Badge>{languageLabel(language)}</Badge>
+            <MockBadge mock={info.data?.is_mock} />
           </>
         }
         art={
@@ -191,34 +143,38 @@ export default function TutorPage() {
           </Float>
         }
       />
-      <PhaseNotice phase={4}>
-        Lesson plans, streamed explanations, conversation memory, summaries and understanding checks.
-      </PhaseNotice>
+      {info.data?.is_mock && (
+        <Alert tone="success" className="bg-sun!">
+          <strong>Mock AI is on.</strong> Everything works end to end, but replies are
+          placeholders. Add an <code>ANTHROPIC_API_KEY</code> to the backend <code>.env</code>{' '}
+          for real lessons.
+        </Alert>
+      )}
 
       <LessonSetup />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <Classroom />
-        <div className="space-y-6">
-          <Card tone="sun">
-            <CardHeader title="Lesson summary" />
-            <EmptyState
-              art={<Notebook className="mx-auto w-20" />}
-              title="Nothing to sum up yet"
-              description="A short recap of each lesson lands here."
-              className="py-6"
-            />
-          </Card>
-          <Card tone="mint">
-            <CardHeader title="Example cards" />
-            <EmptyState
-              art={<Lightbulb className="mx-auto w-16" />}
-              title="Examples on the way"
-              description="Real-world examples from your lesson, drawn from your interests."
-              className="py-6"
-            />
-          </Card>
-        </div>
+        <Card>
+          <CardHeader title="Your lessons" description="Pick up where you left off." />
+          <div className="pt-2 pb-2">
+            <LessonList limit={20} />
+          </div>
+        </Card>
+        <Card tone="mint">
+          <CardHeader title="How your tutor teaches" />
+          <CardBody>
+            <ul className="space-y-3">
+              {HOW.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-start gap-3 text-sm font-semibold">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl border-2 border-ink bg-surface text-fg">
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
       </div>
     </div>
   )

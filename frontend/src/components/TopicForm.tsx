@@ -5,12 +5,19 @@ import { usePreferences } from '../app/preferences-context'
 import { LANGUAGES, LEVELS } from '../lib/learning'
 import type { LanguageCode, Level } from '../lib/learning'
 import { Button } from './ui/Button'
+import { Alert } from './ui/feedback'
 import { Field, Input, Select } from './ui/form'
+
+export type TopicValues = { topic: string; level: Level; language: LanguageCode }
 
 type TopicFormProps = {
   submitLabel: string
-  /** Phase that wires this form to the backend. Submit stays disabled until then. */
-  phase: number
+  /** Live form: called with the values on submit. */
+  onSubmit?: (values: TopicValues) => void
+  pending?: boolean
+  error?: string
+  /** Not wired yet: submit stays disabled and names the phase that wires it. */
+  phase?: number
   topicLabel?: string
   placeholder?: string
   children?: ReactNode
@@ -19,6 +26,9 @@ type TopicFormProps = {
 /** Topic + level + language picker shared by the tutor, mind map, video and quiz workspaces. */
 export function TopicForm({
   submitLabel,
+  onSubmit,
+  pending = false,
+  error,
   phase,
   topicLabel = 'What do you want to learn?',
   placeholder = 'e.g. Machine learning from beginner to advanced',
@@ -30,7 +40,13 @@ export function TopicForm({
   const [language, setLanguage] = useState<LanguageCode>(prefs.language)
 
   return (
-    <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (onSubmit && topic.trim().length >= 2) onSubmit({ topic: topic.trim(), level, language })
+      }}
+    >
       <Field label={topicLabel}>
         {(control) => (
           <Input
@@ -71,11 +87,17 @@ export function TopicForm({
         </Field>
       </div>
       {children}
+      {error && <Alert>{error}</Alert>}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled>
+        <Button
+          type="submit"
+          disabled={!onSubmit || topic.trim().length < 2}
+          loading={pending}
+        >
           {submitLabel}
         </Button>
-        <span className="text-sm text-muted">Available in Phase {phase}</span>
+        {!onSubmit && phase && <span className="text-sm text-muted">Available in Phase {phase}</span>}
+        {pending && <span className="text-sm text-muted">Building your lesson plan…</span>}
       </div>
     </form>
   )

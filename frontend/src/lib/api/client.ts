@@ -144,3 +144,60 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   }
   return body as T
 }
+
+// --- Server-sent event streams (POST + auth, so EventSource can't be used) ---
+
+export type StreamHandler = (event: string, data: unknown) => void
+
+/**
+ * POST JSON and consume a `text/event-stream` response, calling `onEvent` per event.
+ * Retries once after refreshing the session on 401. Abort with `signal`.
+ */
+export async function apiStream(
+  path: string,
+  { json, signal, onEvent }: { json: unknown; signal?: AbortSignal; onEvent: StreamHandler },
+): Promise<void> {
+  const send = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      signal,
+      headers: {
+        Accept: 'text/event-stream',
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(json),
+    })
+
+  let res = await send()
+  if (res.status === 401 && (await refreshSession())) res = await send()
+  if (!res.ok || !res.body) {
+    const body = await parseBody(res)
+    throw new ApiError(res.status, errorMessage(body, res.status), body)
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  const flush = (block: string) => {
+    let event = 'message'
+    const data: string[] = []
+    for (const line of block.split('\n')) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      else if (line.startsWith('data:')) data.push(line.slice(5).trimStart())
+    }
+    if (data.length) onEvent(event, JSON.parse(data.join('\n')))
+  }
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n')
+    let index: number
+    while ((index = buffer.indexOf('\n\n')) >= 0) {
+      flush(buffer.slice(0, index))
+      buffer = buffer.slice(index + 2)
+    }
+  }
+  if (buffer.trim()) flush(buffer)
+}

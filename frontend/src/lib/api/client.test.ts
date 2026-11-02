@@ -95,3 +95,46 @@ describe('apiFetch', () => {
     )
   })
 })
+
+describe('apiStream', () => {
+  it('parses server-sent events even when split across network chunks', async () => {
+    const { apiStream } = await import('./client')
+    const { sseResponse } = await import('../../test/utils')
+    const api = mockApi({
+      'POST /stream': () =>
+        sseResponse(
+          [
+            ['start', { n: 1 }],
+            ['delta', { text: 'Héllo ' }],
+            ['delta', { text: 'wörld' }],
+            ['done', { ok: true }],
+          ],
+          7, // tiny chunks: events and multi-byte characters straddle boundaries
+        ),
+    })
+    setSession({ accessToken: 'abc', user: TEST_USER })
+    const seen: [string, unknown][] = []
+
+    await apiStream('/stream', { json: { q: 1 }, onEvent: (e, d) => seen.push([e, d]) })
+
+    expect(seen).toEqual([
+      ['start', { n: 1 }],
+      ['delta', { text: 'Héllo ' }],
+      ['delta', { text: 'wörld' }],
+      ['done', { ok: true }],
+    ])
+    const [call] = api.find('POST /stream')
+    expect(call.headers.get('Authorization')).toBe('Bearer abc')
+    expect(call.headers.get('Accept')).toBe('text/event-stream')
+    expect(call.body).toEqual({ q: 1 })
+  })
+
+  it('throws a typed error for non-2xx responses', async () => {
+    const { apiStream } = await import('./client')
+    mockApi({ 'POST /stream': () => jsonResponse({ detail: 'Too many', code: 'rate_limited' }, 429) })
+    await expect(apiStream('/stream', { json: {}, onEvent: () => {} })).rejects.toMatchObject({
+      status: 429,
+      code: 'rate_limited',
+    })
+  })
+})

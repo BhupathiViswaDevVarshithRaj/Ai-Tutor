@@ -5,6 +5,9 @@ os.environ["APP_ENV"] = "test"
 os.environ["POSTGRES_DB"] = "aitutor_test"
 os.environ["REDIS_URL"] = "redis://localhost:6379/15"
 os.environ["SECRET_KEY"] = "test-secret-key-not-for-production-use-0123456789"
+os.environ["LLM_PROVIDER"] = "mock"
+os.environ["ANTHROPIC_API_KEY"] = ""
+os.environ["MOCK_STREAM_DELAY_SECONDS"] = "0"
 
 import asyncio  # noqa: E402
 import socket  # noqa: E402

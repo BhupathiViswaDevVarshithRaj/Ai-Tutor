@@ -23,7 +23,7 @@ cd backend
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"     # macOS/Linux: .venv/bin/python
 .venv/Scripts/alembic upgrade head
-.venv/Scripts/python -m uvicorn app.main:app --reload --reload-dir app --port 8000
+.venv/Scripts/python -m uvicorn app.main:app --reload --reload-dir app --timeout-graceful-shutdown 3 --port 8000
 
 # 4. Frontend (new terminal)
 cd frontend
@@ -60,9 +60,12 @@ docker-compose.yml   Postgres (pgvector) + Redis
 | User | `GET/PATCH /users/me`, `GET/PATCH /users/me/preferences` |
 | Lessons | `GET/POST /lessons`, `GET/PATCH/DELETE /lessons/{id}` |
 | Conversations | `GET/POST /conversations`, `GET/DELETE /conversations/{id}`, `POST /conversations/{id}/messages` |
+| AI tutor | `GET /tutor/info`, `POST /tutor/lessons` (plan + classroom), `POST /tutor/conversations/{id}/reply` (SSE stream), `POST /tutor/lessons/{id}/summary` |
 
 \* Cookie-authenticated routes require the header `X-CSRF-Protection: 1`. Other routes use `Authorization: Bearer <access_token>`.
 Interactive docs: http://localhost:8000/docs
+
+**AI tutor:** set `ANTHROPIC_API_KEY` in `.env` and restart the backend to use Claude (`claude-opus-5-5` by default; see the `LLM_*` settings). Without a key the app runs on a clearly labelled mock provider.
 
 **Password reset in development:** without SMTP settings, the reset email (with its link) is printed in the backend log.
 

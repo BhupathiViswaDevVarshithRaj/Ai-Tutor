@@ -36,11 +36,51 @@ export type Lesson = {
   topic: string
   level: Level
   language: LanguageCode
-  plan: Record<string, unknown> | null
+  plan: LessonPlan | null
   status: LessonStatus
   current_section: number
   completed_sections: number[]
   summary: string | null
   created_at: string
   updated_at: string
+}
+
+export type PlanSection = { title: string; objectives: string[]; key_terms: string[] }
+export type PlanModule = { title: string; summary: string; sections: PlanSection[] }
+export type LessonPlan = {
+  title: string
+  overview: string
+  prerequisites: string[]
+  modules: PlanModule[]
+}
+
+export type Conversation = {
+  id: string
+  lesson_id: string | null
+  title: string
+  mode: 'text' | 'voice'
+  language: LanguageCode
+  level: Level
+  created_at: string
+  updated_at: string
+}
+
+export type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  language: LanguageCode
+  input_mode: 'text' | 'voice'
+  created_at: string
+}
+
+export type ConversationDetail = Conversation & { messages: ChatMessage[] }
+
+export type LessonStart = { lesson: Lesson; conversation: Conversation }
+
+export type AIInfo = {
+  provider: string
+  is_mock: boolean
+  tutor_model: string
+  structured_model: string
 }

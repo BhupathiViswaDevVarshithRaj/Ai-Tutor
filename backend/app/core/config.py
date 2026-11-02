@@ -47,6 +47,24 @@ class Settings(BaseSettings):
     auth_rate_limit: int = 10
     auth_rate_window_seconds: int = 60
 
+    # --- LLM (AI tutor) ---
+    # "auto" uses Anthropic when ANTHROPIC_API_KEY is set, otherwise the labelled mock provider.
+    llm_provider: Literal["auto", "anthropic", "mock"] = "auto"
+    anthropic_api_key: str = ""
+    llm_model_tutor: str = "claude-opus-5-5"
+    llm_model_structured: str = "claude-opus-5-5"
+    llm_effort_tutor: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    llm_effort_structured: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    llm_max_tokens: int = 16000
+    llm_timeout_seconds: float = 120.0
+    llm_max_retries: int = 2
+    # How many earlier messages of a conversation are sent as memory.
+    llm_history_messages: int = 30
+    # Delay between mock stream chunks (0 in tests).
+    mock_stream_delay_seconds: float = 0.02
+    ai_rate_limit: int = 20
+    ai_rate_window_seconds: int = 60
+
     # --- Email (optional; console mailer is used when SMTP_HOST is empty) ---
     smtp_host: str = ""
     smtp_port: int = 587

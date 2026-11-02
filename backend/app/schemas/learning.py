@@ -20,6 +20,9 @@ class LessonCreate(BaseModel):
 class LessonUpdate(BaseModel):
     status: LessonStatus | None = None
     current_section: Annotated[int, Field(ge=0, le=500)] | None = None
+    completed_sections: (
+        Annotated[list[Annotated[int, Field(ge=0, le=500)]], Field(max_length=500)] | None
+    ) = None
 
 
 class LessonOut(ORMModel):

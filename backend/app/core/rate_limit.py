@@ -14,18 +14,25 @@ logger = logging.getLogger(__name__)
 class RateLimiter:
     """Fixed-window limiter per client IP, stored in Redis. Use as a route dependency.
 
-    Fails open (allows the request) if Redis is unavailable, and logs a warning.
+    Limits are read from settings at request time (`limit_setting` / `window_setting` name the
+    fields), so they can be changed via environment variables. Fails open (allows the request)
+    if Redis is unavailable, and logs a warning.
     """
 
-    def __init__(self, scope: str, limit: int | None = None, window_seconds: int | None = None):
+    def __init__(
+        self,
+        scope: str,
+        limit_setting: str = "auth_rate_limit",
+        window_setting: str = "auth_rate_window_seconds",
+    ):
         self.scope = scope
-        self.limit = limit
-        self.window_seconds = window_seconds
+        self.limit_setting = limit_setting
+        self.window_setting = window_setting
 
     async def __call__(self, request: Request) -> None:
         settings = get_settings()
-        limit = self.limit or settings.auth_rate_limit
-        window = self.window_seconds or settings.auth_rate_window_seconds
+        limit = int(getattr(settings, self.limit_setting))
+        window = int(getattr(settings, self.window_setting))
         client_ip = request.client.host if request.client else "unknown"
         key = f"rl:{self.scope}:{client_ip}:{int(time.time() // window)}"
         try:

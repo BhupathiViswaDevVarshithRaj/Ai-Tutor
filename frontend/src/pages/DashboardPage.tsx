@@ -11,10 +11,13 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { LessonList } from '../features/lessons/LessonList'
 import { LessonStats } from '../features/lessons/LessonStats'
 import { BackendStatus } from '../features/system/BackendStatus'
+import { useStartLesson } from '../features/tutor/useStartLesson'
+import { describeError } from '../lib/errors'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const firstName = user?.full_name.split(/\s+/)[0]
+  const start = useStartLesson()
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -53,7 +56,12 @@ export default function DashboardPage() {
             description="The tutor builds a lesson plan for your topic, level and language."
           />
           <CardBody>
-            <TopicForm submitLabel="Start lesson" phase={4} />
+            <TopicForm
+              submitLabel="Start lesson"
+              onSubmit={(values) => start.mutate(values)}
+              pending={start.isPending}
+              error={start.isError ? describeError(start.error) : undefined}
+            />
           </CardBody>
         </Card>
         <div className="grid gap-6">

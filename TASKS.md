@@ -51,5 +51,15 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] R.6 Home dashboard, AI Tutor classroom, new Language Learning page, Mind Maps, Whiteboard, Video Studio, Voice Learning, Quizzes, My Progress, Lesson History, Profile & Settings, auth split layout, 404
 - [x] R.7 Tests updated (76 passing); visual check with Playwright at 1440 px and 390 px, light + dark: no page errors, no horizontal overflow
 
-## Phases 4–15
+## Phase 4 — AI tutor ✅ (branch `phase-4-ai-tutor`, awaiting your approval)
+- [x] 4.1 LLM provider interface (`app/ai/llm`): Anthropic adapter (official SDK 2.4, `claude-opus-5-5`, streaming, structured outputs, prompt caching, effort per route, server-side refusal fallback) + clearly labelled mock provider; `LLM_PROVIDER=auto`
+- [x] 4.2 Prompts: level-adaptive (beginner/intermediate/advanced), language rules for 6 languages (native script + English technical terms), interests, lesson plan in context, understanding-check question after each idea; cache-stable system prompt
+- [x] 4.3 Lesson plans via validated structured output (`POST /tutor/lessons`) → lesson + conversation
+- [x] 4.4 Streaming replies over SSE with conversation memory (last 30 messages), refusal and error handling; replies saved with model and token usage
+- [x] 4.5 Lesson summaries (`POST /tutor/lessons/{id}/summary`), section progress (`completed_sections`, `current_section`)
+- [x] 4.6 Frontend: lesson starter, lesson classroom (streaming chat, Markdown, stop, retry, quick follow-ups), plan checklist with "Study", summary card, Mock AI badges; Dashboard "Start lesson" and lesson links are live
+- [x] 4.7 Tests: backend 66 (incl. fake-SDK and real-SDK-over-mock-transport checks), frontend 87; live browser run through the dev servers
+- [ ] Deferred: mastery tracking from understanding checks → Phase 13 (needs `topic_mastery`, migration 0008); quiz generation → Phase 13; RAG over uploaded material → later phase (no upload UI yet)
+
+## Phases 5–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

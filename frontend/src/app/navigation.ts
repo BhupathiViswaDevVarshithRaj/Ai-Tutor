@@ -35,7 +35,6 @@ const TUTOR: NavItem = {
   icon: MessageSquare,
   accent: 'purple',
   description: 'One-to-one lessons on any topic, at your level, in your language.',
-  phase: 4,
 }
 const LANGUAGES: NavItem = {
   to: '/app/languages',

@@ -13,6 +13,7 @@ const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage')
 const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage'))
 const DashboardPage = lazy(() => import('../pages/DashboardPage'))
 const TutorPage = lazy(() => import('../pages/TutorPage'))
+const LessonPage = lazy(() => import('../pages/LessonPage'))
 const LanguageLearningPage = lazy(() => import('../pages/LanguageLearningPage'))
 const VoiceTutorPage = lazy(() => import('../pages/VoiceTutorPage'))
 const VideoStudioPage = lazy(() => import('../pages/VideoStudioPage'))
@@ -47,6 +48,7 @@ export function AppRoutes() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="tutor" element={<TutorPage />} />
+          <Route path="tutor/:lessonId" element={<LessonPage />} />
           <Route path="languages" element={<LanguageLearningPage />} />
           <Route path="voice" element={<VoiceTutorPage />} />
           <Route path="videos" element={<VideoStudioPage />} />

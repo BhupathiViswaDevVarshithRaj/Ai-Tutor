@@ -81,6 +81,8 @@ export function signedInApi(extra: Record<string, Handler> = {}, user: User = TE
     'POST /auth/logout': () => new Response(null, { status: 204 }),
     'GET /health/ready': healthy,
     'GET /lessons': () => jsonResponse(EMPTY_PAGE),
+    'GET /tutor/info': () =>
+      jsonResponse({ provider: 'mock', is_mock: true, tutor_model: 'mock-tutor', structured_model: 'mock-tutor' }),
     ...extra,
   })
 }
@@ -93,4 +95,18 @@ export function signedOutApi(extra: Record<string, Handler> = {}) {
     'GET /health/ready': healthy,
     ...extra,
   })
+}
+
+/** A `text/event-stream` response, optionally split into arbitrary network chunks. */
+export function sseResponse(events: [string, unknown][], chunkSize?: number): Response {
+  const text = events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join('')
+  const bytes = new TextEncoder().encode(text)
+  const size = chunkSize ?? bytes.length
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (let i = 0; i < bytes.length; i += size) controller.enqueue(bytes.slice(i, i + size))
+      controller.close()
+    },
+  })
+  return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
 }

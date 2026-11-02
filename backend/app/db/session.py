@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -22,6 +23,15 @@ def get_engine() -> AsyncEngine:
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
+    get_engine()
+    assert _sessionmaker is not None
+    async with _sessionmaker() as session:
+        yield session
+
+
+@asynccontextmanager
+async def session_scope() -> AsyncIterator[AsyncSession]:
+    """Standalone session for work that outlives a request (e.g. a streaming response)."""
     get_engine()
     assert _sessionmaker is not None
     async with _sessionmaker() as session:

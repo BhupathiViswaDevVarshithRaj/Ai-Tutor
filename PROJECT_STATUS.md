@@ -30,7 +30,7 @@
 |---|---|
 | Backend (`pytest`, real Postgres + Redis test DB) | 107 passed |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 17 files, 118 tests passed (two consecutive full runs) |
+| Frontend (`vitest run`) | 17 files, 117 tests passed (two consecutive full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |

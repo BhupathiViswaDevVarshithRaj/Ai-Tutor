@@ -86,7 +86,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 7.5 Lesson classroom: Listen / Pause / Resume on every tutor reply; playback bar (play latest reply, stop, progress, speed)
 - [x] 7.6 Voice Learning: working speed and voice controls, "Hear a sample" in each tutor language, Listen on transcripts
 - [x] 7.7 Settings → System shows the live AI model and speech providers (replacing static text)
-- [x] 7.8 Tests: frontend 118 (15 new, fake audio helper); real Chromium run: sample played to the end, voice/speed kept after reload, lesson reply played with progress, pause, resume and stop; 1440 px light / 390 px dark
+- [x] 7.8 Tests: frontend 117 (14 new, fake audio helper); real Chromium run: sample played to the end, voice/speed kept after reload, lesson reply played with progress, pause, resume and stop; 1440 px light / 390 px dark
 
 ## Phases 8–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

@@ -124,6 +124,23 @@ async def test_reply_streams_and_persists_both_messages(api, llm):
     ]
 
 
+async def test_reply_records_how_the_learner_asked(api, llm):
+    headers = await register_user(api)
+    conv_id = (await start_lesson(api, headers))["conversation"]["id"]
+
+    resp = await api.post(
+        f"{API}/tutor/conversations/{conv_id}/reply",
+        headers=headers,
+        json={"content": "How do plants breathe?", "input_mode": "voice"},
+    )
+    assert parse_sse(resp.text)[0][1]["user_message"]["input_mode"] == "voice"
+    await reply(api, headers, conv_id, "And at night?")
+
+    detail = (await api.get(f"{API}/conversations/{conv_id}", headers=headers)).json()
+    user_modes = [m["input_mode"] for m in detail["messages"] if m["role"] == "user"]
+    assert user_modes == ["voice", "text"]
+
+
 async def test_reply_uses_conversation_memory_and_lesson_context(api, llm):
     headers = await register_user(api)
     await api.patch(f"{API}/users/me/preferences", headers=headers, json={"interests": ["Cricket"]})

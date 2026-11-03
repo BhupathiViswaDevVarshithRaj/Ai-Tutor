@@ -4,6 +4,7 @@ import type {
   AIInfo,
   ChatMessage,
   ConversationDetail,
+  InputMode,
   Conversation,
   Lesson,
   LessonStart,
@@ -58,9 +59,10 @@ export function streamReply(
   content: string,
   handlers: ReplyHandlers,
   signal?: AbortSignal,
+  inputMode: InputMode = 'text',
 ): Promise<void> {
   return apiStream(`/tutor/conversations/${conversationId}/reply`, {
-    json: { content },
+    json: inputMode === 'voice' ? { content, input_mode: 'voice' } : { content },
     signal,
     onEvent: (event, data) => {
       const d = data as Record<string, unknown>

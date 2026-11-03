@@ -70,7 +70,7 @@ export type ChatMessage = {
   role: 'user' | 'assistant' | 'system'
   content: string
   language: LanguageCode
-  input_mode: 'text' | 'voice'
+  input_mode: InputMode
   created_at: string
 }
 
@@ -118,3 +118,5 @@ export type SpeechAudio = {
   provider: string
   isMock: boolean
 }
+
+export type InputMode = 'text' | 'voice'

@@ -1,4 +1,4 @@
-import { Mic, Pause, Play, RotateCw, Send, Square } from 'lucide-react'
+import { Mic, Pause, Play, RotateCw, Send, Square, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 
@@ -10,7 +10,10 @@ import { Card } from '../../components/ui/Card'
 import { cn } from '../../components/ui/cn'
 import { Alert, EmptyState } from '../../components/ui/feedback'
 import { Select, Textarea } from '../../components/ui/form'
-import type { ChatMessage } from '../../lib/api/types'
+import type { ChatMessage, InputMode } from '../../lib/api/types'
+import type { LanguageCode } from '../../lib/learning'
+import { formatClock } from '../speech/useRecorder'
+import { useDictation } from '../speech/useDictation'
 import type { useTutorChat } from './useTutorChat'
 
 const FOLLOW_UPS = [
@@ -55,15 +58,27 @@ function Bubble({ message, streaming = false }: { message: Pick<ChatMessage, 'ro
 export function Classroom({
   chat,
   mock,
+  language,
   onStartLesson,
 }: {
   chat: ReturnType<typeof useTutorChat>
   mock: boolean
+  language: LanguageCode
   onStartLesson: () => void
 }) {
   const { messages, streaming, busy, error, notice, send, stop } = chat
   const [draft, setDraft] = useState('')
+  // 'voice' once dictation fills the box; the learner can still correct the text before sending.
+  const [draftMode, setDraftMode] = useState<InputMode>('text')
   const endRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const dictation = useDictation(language, (transcript) => {
+    setDraft((current) => (current.trim() ? `${current.trim()} ${transcript.text}` : transcript.text))
+    setDraftMode('voice')
+    inputRef.current?.focus()
+  })
+  const recording = dictation.status === 'recording'
 
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end', behavior: 'smooth' })
@@ -71,9 +86,10 @@ export function Classroom({
 
   const submit = (event?: FormEvent) => {
     event?.preventDefault()
-    if (!draft.trim() || busy) return
-    void send(draft)
+    if (!draft.trim() || busy || dictation.busy) return
+    void send(draft, draftMode)
     setDraft('')
+    setDraftMode('text')
   }
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -132,7 +148,7 @@ export function Classroom({
             <span className="flex flex-wrap items-center gap-3">
               {error.message}
               {error.retryable && (
-                <Button size="sm" variant="secondary" onClick={() => void send(error.content)}>
+                <Button size="sm" variant="secondary" onClick={() => void send(error.content, error.inputMode)}>
                   <RotateCw className="size-4" aria-hidden /> Try again
                 </Button>
               )}
@@ -155,16 +171,24 @@ export function Classroom({
           </div>
         )}
         <form className="flex items-end gap-2" onSubmit={submit}>
-          <Button
-            type="button"
-            variant="sun"
-            size="icon"
-            disabled
-            aria-label="Speak your question (voice input, Phase 6)"
-            title="Voice input arrives in Phase 6"
-          >
-            <Mic className="size-5" aria-hidden />
-          </Button>
+          {recording ? (
+            <Button type="button" variant="danger" size="icon" onClick={dictation.stop} aria-label="Stop recording">
+              <Square className="size-4" aria-hidden />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="sun"
+              size="icon"
+              loading={dictation.status === 'requesting' || dictation.transcribing}
+              disabled={!dictation.ready || busy}
+              onClick={dictation.start}
+              aria-label="Speak your question"
+              title={dictation.unavailableReason ?? 'Speak your question'}
+            >
+              <Mic className="size-5" aria-hidden />
+            </Button>
+          )}
           <label htmlFor="tutor-message" className="sr-only">
             Message the tutor
           </label>
@@ -173,25 +197,45 @@ export function Classroom({
             rows={1}
             value={draft}
             maxLength={8000}
-            onChange={(e) => setDraft(e.target.value)}
+            ref={inputRef}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              if (!e.target.value.trim()) setDraftMode('text')
+            }}
             onKeyDown={onKeyDown}
             placeholder="Ask your tutor anything…"
             aria-describedby="tutor-message-hint"
-            className="max-h-40 min-h-11 resize-none rounded-[22px]!"
+            className="field-sizing-content max-h-40 min-h-11 resize-none rounded-[22px]!"
           />
           {busy ? (
             <Button type="button" variant="danger" size="icon" onClick={stop} aria-label="Stop reply">
               <Square className="size-4" aria-hidden />
             </Button>
           ) : (
-            <Button type="submit" size="icon" disabled={!draft.trim()} aria-label="Send message">
+            <Button type="submit" size="icon" disabled={!draft.trim() || dictation.busy} aria-label="Send message">
               <Send className="size-4" aria-hidden />
             </Button>
           )}
         </form>
-        <p id="tutor-message-hint" className="-mt-1 pl-14 text-xs text-muted">
-          Enter to send · Shift+Enter for a new line
-        </p>
+        <div id="tutor-message-hint" className="-mt-1 pl-14 text-xs text-muted" aria-live="polite">
+          {recording ? (
+            <span className="flex flex-wrap items-center gap-2 font-semibold text-fg">
+              <span className="size-2 animate-pulse rounded-full bg-[#e5484d]" aria-hidden />
+              Recording {formatClock(dictation.elapsedMs)} of {formatClock(dictation.maxMs)}. Press stop when you’re done.
+              <button type="button" onClick={dictation.cancel} className="inline-flex items-center gap-1 underline">
+                <X className="size-3" aria-hidden /> Cancel
+              </button>
+            </span>
+          ) : dictation.transcribing ? (
+            'Transcribing your voice…'
+          ) : dictation.error ? (
+            <span role="alert" className="text-[#b42318] dark:text-rose">{dictation.error}</span>
+          ) : draftMode === 'voice' && draft ? (
+            <>From your voice{dictation.isMock && ' (mock transcript)'}. Check the text, then send.</>
+          ) : (
+            'Enter to send · Shift+Enter for a new line · or press the mic to speak'
+          )}
+        </div>
         <div
           className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2/70 px-3 py-2"
           aria-label="Spoken reply playback (Phase 7)"

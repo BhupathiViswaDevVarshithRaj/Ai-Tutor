@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { AppRoutes } from '../app/AppRoutes'
 import type { ChatMessage, Lesson } from '../lib/api/types'
-import { jsonResponse, renderWithProviders, signedInApi, sseResponse } from '../test/utils'
+import { installFakeMic, jsonResponse, renderWithProviders, signedInApi, sseResponse } from '../test/utils'
 
 const LESSON: Lesson = {
   id: 'l1',
@@ -131,6 +131,46 @@ describe('AI tutor flow', () => {
       expect(api.find('PATCH /lessons/l1').at(-1)?.body).toEqual({ completed_sections: [0] }),
     )
     expect(await screen.findByText('1 of 2 sections done')).toBeInTheDocument()
+  })
+
+  it('dictates a question, lets the learner correct it, and sends it as voice input', async () => {
+    const user = userEvent.setup()
+    const mic = installFakeMic()
+    const api = lessonApi({
+      'POST /speech/transcribe': () =>
+        jsonResponse({
+          text: 'how do plants breath',
+          language: 'en',
+          confidence: null,
+          duration_ms: null,
+          provider: 'mock',
+          is_mock: true,
+        }),
+    })
+    try {
+      renderWithProviders(<AppRoutes />, { route: '/app/tutor/l1' })
+      await screen.findByRole('heading', { level: 1, name: 'How plants make food' })
+
+      const speak = screen.getByRole('button', { name: 'Speak your question' })
+      await waitFor(() => expect(speak).toBeEnabled())
+      await user.click(speak)
+      expect(await screen.findByText(/Recording 0:00 of 1:00/)).toBeInTheDocument()
+      mic.advance(1800)
+      await user.click(screen.getByRole('button', { name: 'Stop recording' }))
+
+      const box = screen.getByLabelText('Message the tutor')
+      await waitFor(() => expect(box).toHaveValue('how do plants breath'))
+      expect(screen.getByText(/From your voice \(mock transcript\)/)).toBeInTheDocument()
+      await user.type(box, 'e?{Enter}')
+
+      await waitFor(() => expect(api.find('POST /tutor/conversations/c1/reply')).toHaveLength(1))
+      expect(api.find('POST /tutor/conversations/c1/reply')[0].body).toEqual({
+        content: 'how do plants breathe?',
+        input_mode: 'voice',
+      })
+    } finally {
+      mic.uninstall()
+    }
   })
 
   it('shows a stream error with a retry', async () => {

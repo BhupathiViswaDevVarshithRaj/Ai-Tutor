@@ -137,3 +137,51 @@ export function sseResponse(events: [string, unknown][], chunkSize?: number): Re
   })
   return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
 }
+
+/**
+ * Fake microphone for jsdom: getUserMedia + MediaRecorder producing a small WebM blob.
+ * `advance(ms)` moves the recording clock; `deny` makes getUserMedia reject with that error name.
+ */
+export function installFakeMic({ deny }: { deny?: string } = {}) {
+  let now = 0
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  const track = { stop: vi.fn() }
+  const getUserMedia = vi.fn(async () => {
+    if (deny) throw new DOMException('denied', deny)
+    return { getTracks: () => [track] } as unknown as MediaStream
+  })
+  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } })
+
+  class FakeMediaRecorder {
+    static isTypeSupported = (type: string) => type === 'audio/webm;codecs=opus'
+    state: RecordingState = 'inactive'
+    mimeType: string
+    ondataavailable: ((event: { data: Blob }) => void) | null = null
+    onstop: (() => void) | null = null
+    constructor(_stream: MediaStream, options?: { mimeType?: string }) {
+      this.mimeType = options?.mimeType ?? ''
+    }
+    start() {
+      this.state = 'recording'
+    }
+    stop() {
+      this.state = 'inactive'
+      const webm = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, ...new Array(200).fill(0)])
+      this.ondataavailable?.({ data: new Blob([webm], { type: 'audio/webm' }) })
+      this.onstop?.()
+    }
+  }
+  vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
+
+  return {
+    getUserMedia,
+    track,
+    advance: (ms: number) => {
+      now += ms
+    },
+    uninstall: () => {
+      vi.unstubAllGlobals()
+      Reflect.deleteProperty(navigator, 'mediaDevices')
+    },
+  }
+}

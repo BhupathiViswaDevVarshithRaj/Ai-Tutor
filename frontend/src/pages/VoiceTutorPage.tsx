@@ -1,4 +1,5 @@
-import { Mic, Square } from 'lucide-react'
+import { Mic, Square, X } from 'lucide-react'
+import { useState } from 'react'
 
 import { usePreferences } from '../app/preferences-context'
 import { PageHeader } from '../components/PageHeader'
@@ -10,6 +11,10 @@ import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/feedback'
 import { Field, Select } from '../components/ui/form'
 import { SpeechStatus } from '../features/speech/SpeechStatus'
+import { TranscriptList } from '../features/speech/TranscriptList'
+import type { TranscriptEntry } from '../features/speech/TranscriptList'
+import { useDictation } from '../features/speech/useDictation'
+import { formatClock } from '../features/speech/useRecorder'
 import { useSpeechInfo } from '../features/speech/useSpeechInfo'
 import { languageLabel } from '../lib/learning'
 
@@ -18,6 +23,27 @@ const SPEEDS = ['0.75', '1.0', '1.25', '1.5']
 export default function VoiceTutorPage() {
   const { language } = usePreferences()
   const voices = useSpeechInfo().data?.tts.voices ?? []
+  const [entries, setEntries] = useState<TranscriptEntry[]>([])
+  const dictation = useDictation(language, (transcript, recorded) => {
+    setEntries((current) => [
+      {
+        id: crypto.randomUUID(),
+        text: transcript.text,
+        original: transcript.text,
+        languageName: languageLabel(language),
+        durationMs: transcript.duration_ms ?? recorded.durationMs,
+        isMock: transcript.is_mock,
+      },
+      ...current,
+    ])
+  })
+  const recording = dictation.status === 'recording'
+
+  let hint = 'Press the microphone and say something. Press stop when you’re done.'
+  if (dictation.status === 'requesting') hint = 'Waiting for microphone permission…'
+  else if (recording) hint = `Listening… ${formatClock(dictation.elapsedMs)} of ${formatClock(dictation.maxMs)}`
+  else if (dictation.transcribing) hint = 'Transcribing…'
+  else if (dictation.unavailableReason) hint = dictation.unavailableReason
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -32,9 +58,10 @@ export default function VoiceTutorPage() {
         }
       />
       <PhaseNotice phase={8}>
-        The speech services are connected (see their live status below). Recording arrives in
-        Phase 6, read-aloud in Phase 7, and both join the tutor in a live voice conversation in
-        Phase 8. Real speech replaces the mock once the Gnani provider is configured.
+        Voice input works now: record yourself and correct the transcript below (you can also
+        dictate in any lesson). Read-aloud arrives in Phase 7, and a live spoken conversation
+        with the tutor in Phase 8. Real speech replaces the mock once the Gnani provider is
+        configured.
       </PhaseNotice>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -46,18 +73,33 @@ export default function VoiceTutorPage() {
           </div>
           <Button
             variant="sun"
-            disabled
-            aria-label="Start speaking"
-            className="relative size-28 rounded-full shadow-[6px_6px_0_0_#7c3aed]"
+            onClick={recording ? dictation.stop : dictation.start}
+            loading={dictation.status === 'requesting' || dictation.transcribing}
+            disabled={!dictation.ready}
+            aria-label={recording ? 'Stop recording' : 'Start speaking'}
+            aria-pressed={recording}
+            className={`relative size-28 rounded-full shadow-[6px_6px_0_0_#7c3aed] ${recording ? 'animate-pulse' : ''}`}
           >
-            <Mic className="size-12" aria-hidden />
+            {recording ? <Square className="size-10" aria-hidden /> : <Mic className="size-12" aria-hidden />}
           </Button>
-          <p className="relative text-center text-[#fbf6ec]/80">
-            Press the microphone and ask your question.
+          <p className="relative text-center text-[#fbf6ec]/80" aria-live="polite">
+            {hint}
           </p>
-          <Button variant="secondary" disabled className="relative">
-            <Square className="size-4" aria-hidden /> Stop
-          </Button>
+          {dictation.error && (
+            <p role="alert" className="relative max-w-md rounded-2xl bg-rose px-4 py-2 text-center text-sm font-medium text-[#5c0f24]">
+              {dictation.error}
+            </p>
+          )}
+          <div className="relative flex gap-3">
+            <Button variant="secondary" disabled={!recording} onClick={dictation.stop}>
+              <Square className="size-4" aria-hidden /> Stop
+            </Button>
+            {recording && (
+              <Button variant="ghost" className="text-[#fbf6ec] hover:bg-white/10" onClick={dictation.cancel}>
+                <X className="size-4" aria-hidden /> Cancel
+              </Button>
+            )}
+          </div>
         </Card>
 
         <Card tone="sun">
@@ -98,12 +140,27 @@ export default function VoiceTutorPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Transcript" />
-        <EmptyState
-          art={<SpeechWaves className="w-full" />}
-          title="Nothing said yet"
-          description="Your words and the tutor's replies appear here, and you can correct any transcription."
+        <CardHeader
+          title="Transcript"
+          description="Correct anything the recogniser got wrong. Transcripts stay until you leave this page."
         />
+        {entries.length === 0 ? (
+          <EmptyState
+            art={<SpeechWaves className="w-full" />}
+            title="Nothing said yet"
+            description="Record yourself and your words appear here, ready to correct."
+          />
+        ) : (
+          <CardBody>
+            <TranscriptList
+              entries={entries}
+              onChange={(id, text) =>
+                setEntries((current) => current.map((e) => (e.id === id ? { ...e, text } : e)))
+              }
+              onRemove={(id) => setEntries((current) => current.filter((e) => e.id !== id))}
+            />
+          </CardBody>
+        )}
       </Card>
     </div>
   )

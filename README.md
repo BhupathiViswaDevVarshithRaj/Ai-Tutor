@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–5 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), and the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–6 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), and voice input (record, transcribe, correct; dictation in lessons). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)

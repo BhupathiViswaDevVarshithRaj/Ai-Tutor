@@ -2,10 +2,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { streamReply } from '../../lib/api/tutor'
-import type { ChatMessage } from '../../lib/api/types'
+import type { ChatMessage, InputMode } from '../../lib/api/types'
 import { describeError } from '../../lib/errors'
 
-export type ChatError = { message: string; retryable: boolean; content: string }
+export type ChatError = { message: string; retryable: boolean; content: string; inputMode: InputMode }
 
 /** Chat state for one conversation: optimistic send, streamed reply, stop and retry. */
 export function useTutorChat(conversationId: string, initial: ChatMessage[]) {
@@ -21,7 +21,7 @@ export function useTutorChat(conversationId: string, initial: ChatMessage[]) {
   const busy = streaming !== null
 
   const send = useCallback(
-    async (content: string) => {
+    async (content: string, inputMode: InputMode = 'text') => {
       const text = content.trim()
       if (!text || controllerRef.current) return
       const pendingId = `pending-${Date.now()}`
@@ -30,7 +30,7 @@ export function useTutorChat(conversationId: string, initial: ChatMessage[]) {
         role: 'user',
         content: text,
         language: initial[0]?.language ?? 'en',
-        input_mode: 'text',
+        input_mode: inputMode,
         created_at: new Date().toISOString(),
       }
       setMessages((m) => [...m, pending])
@@ -55,15 +55,16 @@ export function useTutorChat(conversationId: string, initial: ChatMessage[]) {
               setMessages((m) => [...m, message])
               if (truncated) setNotice('That reply was cut short. Ask the tutor to continue.')
             },
-            onError: (message, retryable) => setError({ message, retryable, content: text }),
+            onError: (message, retryable) => setError({ message, retryable, content: text, inputMode }),
           },
           controller.signal,
+          inputMode,
         )
       } catch (err) {
         if (controller.signal.aborted) {
           setNotice('Reply stopped. It was not saved.')
         } else {
-          setError({ message: describeError(err), retryable: true, content: text })
+          setError({ message: describeError(err), retryable: true, content: text, inputMode })
           // The request failed before the server stored the message: drop the optimistic copy.
           if (!started) setMessages((m) => m.filter((msg) => msg.id !== pendingId))
         }

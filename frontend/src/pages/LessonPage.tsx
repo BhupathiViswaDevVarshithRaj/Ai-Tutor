@@ -58,6 +58,7 @@ function LessonView({
           <Classroom
             chat={chat}
             mock={mock}
+            language={lesson.language}
             onStartLesson={() => void chat.send("Let's start the lesson.")}
           />
         </div>

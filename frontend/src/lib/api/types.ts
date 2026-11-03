@@ -228,3 +228,35 @@ export type LanguageProgress = {
   streak_days: number
   active_days_last_7: number
 }
+
+// --- Mind maps (Phase 10) ---
+
+export type MapNodeKind = 'topic' | 'idea' | 'concept' | 'example' | 'definition'
+export type MapNode = { id: string; parent: string; label: string; kind: MapNodeKind; detail: string }
+export type MapLink = { source: string; target: string; relation: string }
+export type MindMapGraph = { title: string; nodes: MapNode[]; links: MapLink[] }
+export type MindMapLayout = { positions: Record<string, { x: number; y: number }>; collapsed: string[] }
+
+export type MindMap = {
+  id: string
+  lesson_id: string | null
+  topic: string
+  language: LanguageCode
+  level: Level
+  graph: MindMapGraph
+  layout: MindMapLayout | null
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export type MindMapSummary = {
+  id: string
+  lesson_id: string | null
+  title: string
+  topic: string
+  language: LanguageCode
+  level: Level
+  node_count: number
+  updated_at: string
+}

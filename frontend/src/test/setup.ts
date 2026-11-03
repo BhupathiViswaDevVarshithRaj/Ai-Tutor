@@ -38,3 +38,36 @@ afterEach(() => {
   localStorage.clear()
   document.documentElement.classList.remove('dark')
 })
+
+// React Flow (mind maps) measures elements; jsdom has no layout, so give it the minimal
+// stand-ins from React Flow's testing guide.
+class ImmediateResizeObserver {
+  private readonly callback: ResizeObserverCallback
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+  }
+  observe(target: Element) {
+    // A plausible size: React Flow 12 reads `contentRect` from each entry.
+    const contentRect = { x: 0, y: 0, width: 1000, height: 600, top: 0, left: 0, right: 1000, bottom: 600 }
+    this.callback([{ target, contentRect } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver)
+  }
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ImmediateResizeObserver as unknown as typeof ResizeObserver
+
+class ScaleOnlyMatrix {
+  m22: number
+  constructor(transform?: string) {
+    const scale = transform?.match(/scale\(([\d.]+)\)/)?.[1]
+    this.m22 = scale !== undefined ? Number(scale) : 1
+  }
+}
+;(globalThis as { DOMMatrixReadOnly?: unknown }).DOMMatrixReadOnly ??= ScaleOnlyMatrix
+
+Object.defineProperties(HTMLElement.prototype, {
+  offsetHeight: { configurable: true, get() { return parseFloat((this as HTMLElement).style.height) || 1 } },
+  offsetWidth: { configurable: true, get() { return parseFloat((this as HTMLElement).style.width) || 1 } },
+})
+;(SVGElement.prototype as unknown as { getBBox: () => DOMRect }).getBBox = () =>
+  ({ x: 0, y: 0, width: 0, height: 0 }) as DOMRect

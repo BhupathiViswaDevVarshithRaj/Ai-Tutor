@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–9 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation. Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–10 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation, and mind maps (generated, editable, grown with AI, exportable as PNG/SVG/JSON/outline). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)
@@ -101,6 +101,7 @@ docker-compose.yml   Postgres (pgvector) + Redis
 | AI tutor | `GET /tutor/info`, `POST /tutor/lessons` (plan + classroom), `POST /tutor/conversations/{id}/reply` (SSE stream), `POST /tutor/lessons/{id}/summary` |
 | Speech | `GET /speech/info`, `POST /speech/transcribe?language=` (raw audio body), `POST /speech/synthesize` (returns audio) |
 | Voice tutor | WebSocket `/voice/ws` (protocol in ARCHITECTURE.md › Voice tutor) |
+| Mind maps | `GET/POST /mindmaps`, `GET/PATCH/DELETE /mindmaps/{id}`, `POST /mindmaps/{id}/expand` |
 | Language courses | `GET /languages`, `PUT /languages/{code}`, `GET /languages/{code}/progress`, `GET /languages/{code}/vocabulary`, `POST /languages/{code}/vocabulary/generate`, `POST /languages/vocabulary/{id}/review`, `DELETE /languages/vocabulary/{id}`, `GET/POST /languages/{code}/practice`, `GET /languages/practice/{id}`, `POST /languages/practice/{id}/submit` |
 
 \* Cookie-authenticated routes require the header `X-CSRF-Protection: 1`. Other routes use `Authorization: Bearer <access_token>`.

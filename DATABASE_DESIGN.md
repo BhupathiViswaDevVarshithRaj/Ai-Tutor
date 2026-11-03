@@ -75,7 +75,7 @@ Kept separate from chunks so the embedding model can change without rewriting ch
 Unique `(chunk_id, model)`. **HNSW index** `USING hnsw (embedding vector_cosine_ops)`. Index `(user_id, model)`. Queries always filter on `user_id`.
 (If a model with a different dimension is adopted, a new column or table is added by migration. The `dim` column records which applies.)
 
-### mind_maps
+### mind_maps (built in Phase 10)
 `id`, `user_id fk`, `lesson_id fk null`, `topic`, `language`, `level`, `graph jsonb` (validated `MindMap`), `layout jsonb null` (user-moved node positions, collapsed state), `version int default 1`, `created_at`, `updated_at`. Index `(user_id, created_at desc)`.
 
 ### diagrams
@@ -135,10 +135,11 @@ Course progress (words learned/mastered/due, per-skill averages, streak) is comp
 2. `0002_auth`: users, user_preferences, refresh_tokens, password_reset_tokens.
 3. `0003_learning`: lessons, conversations, messages.
 4. `0004_language_courses` (Phase 9, built): language_enrollments, vocab_items, practice_sessions.
-5. `0005_visual`: mind_maps, diagrams.
-6. `0006_media_video`: media_assets, video_jobs.
-7. `0007_assessment`: quizzes, quiz_questions, quiz_submissions, quiz_answers.
-8. `0008_progress`: topic_mastery, learning_sessions.
-9. `0009_rag` (later): learning_resources, document_chunks, embeddings + HNSW. (RAG was deferred from Phase 4, so its migration moves after the others.)
+5. `0005_mind_maps` (Phase 10, built): mind_maps.
+6. `0006_diagrams` (Phase 11): diagrams.
+7. `0007_media_video`: media_assets, video_jobs.
+8. `0008_assessment`: quizzes, quiz_questions, quiz_submissions, quiz_answers.
+9. `0009_progress`: topic_mastery, learning_sessions.
+10. `0010_rag` (later): learning_resources, document_chunks, embeddings + HNSW. (RAG was deferred from Phase 4, so its migration moves after the others.)
 
 Each migration ships with the phase that needs it, so we do not run unused schema ahead of time.

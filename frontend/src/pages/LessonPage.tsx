@@ -10,6 +10,7 @@ import { Alert, Badge, EmptyState, PageSpinner } from '../components/ui/feedback
 import { Classroom } from '../features/tutor/Classroom'
 import { LessonPlanPanel } from '../features/tutor/LessonPlanPanel'
 import { SummaryCard } from '../features/tutor/SummaryCard'
+import { LessonMindMapCard } from '../features/mindmap/LessonMindMapCard'
 import { MockBadge } from '../features/tutor/MockBadge'
 import { useTutorChat } from '../features/tutor/useTutorChat'
 import { ApiError } from '../lib/api/client'
@@ -69,6 +70,7 @@ function LessonView({
             onStudy={(title) => void chat.send(`Let's study "${title}".`)}
           />
           <SummaryCard lesson={lesson} disabled={chat.busy || chat.messages.length === 0} />
+          <LessonMindMapCard lesson={lesson} />
         </aside>
       </div>
     </div>

@@ -56,7 +56,6 @@ const MIND_MAPS: NavItem = {
   icon: Network,
   accent: 'mint',
   description: 'See how every concept in a topic connects.',
-  phase: 10,
 }
 const WHITEBOARD: NavItem = {
   to: '/app/whiteboard',

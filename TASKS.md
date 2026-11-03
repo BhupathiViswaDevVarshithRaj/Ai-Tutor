@@ -99,7 +99,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 8.8 `GET /conversations?mode=voice`; Voice Learning no longer marked "soon"
 - [x] 8.9 Tests: backend 125 (18 new, WebSocket tests with `httpx-ws`), frontend 124 (13 new, fake WebSocket); real Chromium run with a fake microphone: speak → transcript → streamed reply with 7 audio sentences → interrupt → review-and-correct → reply → reload reconnects with history; 1440 px light / 390 px dark
 
-## Phase 9 — Multilingual + language courses ✅ (branch `phase-9-languages`, awaiting your approval)
+## Phase 9 — Multilingual + language courses ✅ (merged to `main`)
 - [x] 9.1 Migration 0004: `language_enrollments`, `vocab_items` (SM-2 state), `practice_sessions`; reversible, `alembic check` clean
 - [x] 9.2 Courses API (`/languages`): course list with level and word counts, enrol / change CEFR level (A1–C2)
 - [x] 9.3 Vocabulary: AI-generated words at the learner's level (articles for gendered nouns, readings for ja/ko/zh, examples), deduplicated per deck; SM-2 review (again/hard/good/easy); delete
@@ -113,5 +113,16 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 9.11 Tests: backend 169 (44 new), frontend 135 (11 new); real Chromium run through the dev servers covering every skill, 1440 px light / 390 px dark
 - [ ] Deferred: subtitle languages → Phase 12 (needs video); running the evaluation against the real model → once `ANTHROPIC_API_KEY` is set
 
-## Phases 10–15
+## Phase 10 — Mind maps ✅ (branch `phase-10-mind-maps`, awaiting your approval)
+- [x] 10.1 Migration 0005: `mind_maps` (graph, learner layout, version); reversible, `alembic check` clean
+- [x] 10.2 Schema: a tree of nodes (topic / main idea / sub-concept / example / definition, with a one-line explanation) plus up to 12 labelled cross-links
+- [x] 10.3 Generation with structured output, in the learner's language and level; model output repaired (ids renumbered, orphans attached, cycles and over-deep branches dropped, links checked); maps from a lesson follow its plan
+- [x] 10.4 Learner edits validated strictly (one root, no orphans or cycles, depth ≤ 5, ≤ 150 nodes) and versioned (stale edits → 409)
+- [x] 10.5 "Expand with AI" grows one branch without repeating existing ideas
+- [x] 10.6 Frontend: React Flow 12 canvas with a two-sided mind-map layout, colour by kind, collapse/expand (+n hidden), drag to rearrange (saved), zoom/pan/fit, expand all / collapse all / tidy layout, side panel to edit, add, delete and expand with AI
+- [x] 10.7 Export: PNG, SVG (fonts embedded), JSON, Markdown outline
+- [x] 10.8 Lesson page "Make a mind map" / "Open mind map"; Mind Maps no longer marked "soon"
+- [x] 10.9 Tests: backend 193 (24 new), frontend 148 (13 new); real Chromium run: generate → rename → AI expand → fold + drag → reload keeps layout → all four exports downloaded; 1440 px light / 390 px dark
+
+## Phases 11–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

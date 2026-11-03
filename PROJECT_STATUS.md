@@ -1,7 +1,7 @@
 # Project Status
 
-**Current phase:** 9 — Multilingual + language courses ✅ complete on branch `phase-9-languages`. Awaiting your approval before Phase 10 (mind maps).
-`main` (also on GitHub): Phases 0–8 + UI redesign (`ea62b02`).
+**Current phase:** 10 — Mind maps ✅ complete on branch `phase-10-mind-maps`. Awaiting your approval before Phase 11 (drawing and diagrams).
+`main` (also on GitHub): Phases 0–9 + UI redesign (`5c1a86e`).
 **Last updated:** 2026-11-04
 
 ## Completed
@@ -29,16 +29,20 @@
 
 - **Phase 9 (multilingual + language courses):** eight world-language courses with CEFR levels: AI-generated vocabulary with spaced-repetition review, grammar, listening, reading, writing (model feedback) and speaking practice marked on the server, role-play conversations in the target language through the voice tutor, and course progress. Speech accepts course languages. A per-language evaluation set checks replies come back in the right language and script.
 
+- **Phase 10 (mind maps):** generated, validated mind maps (from any topic or from a lesson's plan) shown with React Flow: colour-coded ideas, collapse/expand, drag to rearrange (saved), edit/add/delete ideas, grow a branch with AI, and export to PNG, SVG, JSON or a Markdown outline.
+
 ## Test results (actually executed, 2026-11-04)
 | Suite | Result |
 |---|---|
-| Backend (`pytest`, real Postgres + Redis test DB) | 169 passed (incl. 15 WebSocket and 31 course unit tests) |
+| Backend (`pytest`, real Postgres + Redis test DB) | 193 passed |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 19 files, 135 tests passed (three consecutive full runs) |
+| Frontend (`vitest run`) | 21 files, 148 tests passed (repeated full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |
 | Live speech round-trip via curl through the Vite proxy (mock) | `/speech/info` 200 → Hindi text synthesized to a 2.7 s WAV → same WAV transcribed (duration 2714 ms, labelled mock transcript) |
+| Migration 0005 | upgrade → downgrade → upgrade on the dev database; `alembic check` clean |
+| Real-browser mind maps (Playwright, Chromium, through the Vite proxy) | Generate (11 ideas, 11 connections) → rename → expand with AI (14) → fold a branch and drag an idea → reload keeps the layout → PNG, SVG, JSON and outline downloaded and non-empty; exported PNG checked by eye (whole map, nothing cropped). 1440 px light, 390 px dark; no page errors, no 5xx |
 | Migration 0004 | upgrade → downgrade → upgrade on the dev database; `alembic check` clean |
 | Language evaluation (mock provider) | pipeline runs end to end: 26 cases; English cases pass, other languages fail as expected because the mock replies in English (the checks correctly catch this, including for Latin-script languages) |
 | Real-browser language courses (Playwright, Chromium, through the Vite proxy) | Enrol German A2 → add 8 words → review one (7 due) → grammar marked 100% → listening audio plays → writing feedback 50% (mock) → speaking recorded with the fake mic and marked → role-play opens live in Voice Learning and replies → progress shows a 1-day streak. 1440 px light, 390 px dark; no page errors, no 5xx, no overflow |
@@ -61,13 +65,15 @@
 - Course content quality (vocabulary, exercises, feedback, role-play) is untested with a real model: no API key yet. The mock produces clearly labelled placeholder material.
 - Speaking scores are only meaningful with real speech recognition (the mock 'hears' placeholder text).
 - The listening transcript is sent to the browser (hidden until shown), so a determined learner can read it early.
-- Subtitle languages are deferred to Phase 12 (videos). Real speech needs Gnani's official docs + key.
+- Subtitle languages are deferred to Phase 12 (videos).
+- SVG exports are large (≈ 3.7 MB) because all web fonts, including the Indic script fonts, are embedded; PNG is ≈ 60 kB.
+- Mind maps are a tree plus a few cross-links; learners can't draw new cross-links yet (they come from generation). Real speech needs Gnani's official docs + key.
 - The dev server's auto-reload did not pick up newly created router files on Windows; restart uvicorn after adding modules.
 - Playwright is used for visual screenshots; the automated E2E suite is still planned for Phase 14.
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
-- Phase 10: mind maps — schema, AI generation with validation, React Flow rendering, collapse/expand, export (migration 0005).
+- Phase 11: drawing and diagrams — diagram description format, SVG rendering with step-by-step playback, freehand canvas drawing, export.
 
 ## Blockers / pending inputs
 - `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).

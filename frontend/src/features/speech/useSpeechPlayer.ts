@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { synthesizeSpeech } from '../../lib/api/speech'
 import { describeError } from '../../lib/errors'
-import type { LanguageCode } from '../../lib/learning'
+import type { AnyLanguage } from '../../lib/learning'
 import { languageName } from '../../lib/learning'
 import { splitForSpeech, toSpeechText } from '../../lib/speechText'
 import { useSpeechInfo } from './useSpeechInfo'
@@ -46,7 +46,7 @@ export function useSpeechPlayer() {
   }, [speed])
 
   const tts = info.data?.tts
-  const unavailableReason = (language: LanguageCode): string | null => {
+  const unavailableReason = (language: AnyLanguage): string | null => {
     if (info.isError) return 'Read-aloud status could not be checked.'
     if (!tts) return 'Checking read-aloud…'
     if (!tts.available) return 'Read-aloud is not available right now.'
@@ -71,7 +71,7 @@ export function useSpeechPlayer() {
     return audioRef.current
   }
 
-  const fetchPart = (text: string, language: LanguageCode) => {
+  const fetchPart = (text: string, language: AnyLanguage) => {
     const key = `${voice ?? ''}|${language}|${text}`
     const cache = cacheRef.current
     let pending = cache.get(key)
@@ -93,7 +93,7 @@ export function useSpeechPlayer() {
     setState(IDLE)
   }, [])
 
-  const play = async (key: string, text: string, language: LanguageCode) => {
+  const play = async (key: string, text: string, language: AnyLanguage) => {
     stop()
     const run = runRef.current
     const parts = splitForSpeech(toSpeechText(text), Math.min(info.data?.limits.max_tts_chars ?? 2000, 400))
@@ -154,7 +154,7 @@ export function useSpeechPlayer() {
   }
 
   /** Play `key`, or pause/resume it when it is already the current item. */
-  const toggle = (key: string, text: string, language: LanguageCode) => {
+  const toggle = (key: string, text: string, language: AnyLanguage) => {
     if (state.key === key && state.status === 'playing') pause()
     else if (state.key === key && state.status === 'paused') resume()
     else if (!(state.key === key && state.status === 'loading')) void play(key, text, language)

@@ -1,16 +1,14 @@
-/**
- * World-language courses shown in Language Learning (a module planned with Phase 9).
- * `samples` are a few fixed starter words used for the flip-card preview, not generated content.
- */
+import type { CourseCode } from './learning'
+
+/** World-language courses shown in Language Learning: presentation details per course. */
 export type CourseTone = 'sun' | 'mint' | 'lavender' | 'rose' | 'sky' | 'tangerine'
 
 export type Course = {
-  code: string
+  code: CourseCode
   name: string
   native: string
   greeting: string
   tone: CourseTone
-  samples: { word: string; reading?: string; meaning: string }[]
 }
 
 export const COURSES: Course[] = [
@@ -20,11 +18,6 @@ export const COURSES: Course[] = [
     native: 'Deutsch',
     greeting: 'Hallo',
     tone: 'sun',
-    samples: [
-      { word: 'Hallo', meaning: 'Hello' },
-      { word: 'Danke', meaning: 'Thank you' },
-      { word: 'das Buch', meaning: 'the book' },
-    ],
   },
   {
     code: 'fr',
@@ -32,11 +25,6 @@ export const COURSES: Course[] = [
     native: 'Français',
     greeting: 'Bonjour',
     tone: 'sky',
-    samples: [
-      { word: 'Bonjour', meaning: 'Hello / Good morning' },
-      { word: 'Merci', meaning: 'Thank you' },
-      { word: 'le livre', meaning: 'the book' },
-    ],
   },
   {
     code: 'es',
@@ -44,11 +32,6 @@ export const COURSES: Course[] = [
     native: 'Español',
     greeting: '¡Hola!',
     tone: 'tangerine',
-    samples: [
-      { word: '¡Hola!', meaning: 'Hello' },
-      { word: 'Gracias', meaning: 'Thank you' },
-      { word: 'el libro', meaning: 'the book' },
-    ],
   },
   {
     code: 'ja',
@@ -56,11 +39,6 @@ export const COURSES: Course[] = [
     native: '日本語',
     greeting: 'こんにちは',
     tone: 'rose',
-    samples: [
-      { word: 'こんにちは', reading: 'konnichiwa', meaning: 'Hello' },
-      { word: 'ありがとう', reading: 'arigatō', meaning: 'Thank you' },
-      { word: '本', reading: 'hon', meaning: 'book' },
-    ],
   },
   {
     code: 'ko',
@@ -68,11 +46,6 @@ export const COURSES: Course[] = [
     native: '한국어',
     greeting: '안녕하세요',
     tone: 'lavender',
-    samples: [
-      { word: '안녕하세요', reading: 'annyeonghaseyo', meaning: 'Hello' },
-      { word: '감사합니다', reading: 'gamsahamnida', meaning: 'Thank you' },
-      { word: '책', reading: 'chaek', meaning: 'book' },
-    ],
   },
   {
     code: 'zh',
@@ -80,11 +53,6 @@ export const COURSES: Course[] = [
     native: '中文',
     greeting: '你好',
     tone: 'mint',
-    samples: [
-      { word: '你好', reading: 'nǐ hǎo', meaning: 'Hello' },
-      { word: '谢谢', reading: 'xièxie', meaning: 'Thank you' },
-      { word: '书', reading: 'shū', meaning: 'book' },
-    ],
   },
   {
     code: 'it',
@@ -92,11 +60,6 @@ export const COURSES: Course[] = [
     native: 'Italiano',
     greeting: 'Ciao',
     tone: 'sun',
-    samples: [
-      { word: 'Ciao', meaning: 'Hi / Bye' },
-      { word: 'Grazie', meaning: 'Thank you' },
-      { word: 'il libro', meaning: 'the book' },
-    ],
   },
   {
     code: 'pt',
@@ -104,11 +67,6 @@ export const COURSES: Course[] = [
     native: 'Português',
     greeting: 'Olá',
     tone: 'mint',
-    samples: [
-      { word: 'Olá', meaning: 'Hello' },
-      { word: 'Obrigado / Obrigada', meaning: 'Thank you' },
-      { word: 'o livro', meaning: 'the book' },
-    ],
   },
 ]
 
@@ -123,3 +81,17 @@ export const CEFR_LEVELS = [
 ] as const
 
 export type CefrLevel = (typeof CEFR_LEVELS)[number]['id']
+
+export type Skill = 'vocabulary' | 'grammar' | 'listening' | 'reading' | 'writing' | 'speaking' | 'conversation'
+
+/** Everyday situations offered for conversation practice (learners can also write their own). */
+export const ROLEPLAY_SCENARIOS = [
+  'Meeting someone new',
+  'Ordering at a café',
+  'Asking for directions',
+  'Shopping for clothes',
+  'Checking in at a hotel',
+  'At the doctor',
+  'Making weekend plans with a friend',
+  'A job interview',
+]

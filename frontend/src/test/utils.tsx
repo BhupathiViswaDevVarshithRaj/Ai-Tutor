@@ -74,7 +74,8 @@ const healthy = () =>
     checks: { database: { status: 'ok', latency_ms: 1 }, redis: { status: 'ok', latency_ms: 1 } },
   })
 
-const ALL_LANGS = ['bn', 'en', 'hi', 'pa', 'ta', 'te']
+// Like the backend mock: the six tutor languages plus the eight course languages.
+const ALL_LANGS = ['bn', 'de', 'en', 'es', 'fr', 'hi', 'it', 'ja', 'ko', 'pa', 'pt', 'ta', 'te', 'zh']
 
 export const MOCK_SPEECH_INFO: SpeechInfo = {
   stt: { provider: 'mock', is_mock: true, available: true, unavailable_reason: null, languages: ALL_LANGS },
@@ -90,13 +91,25 @@ export const MOCK_SPEECH_INFO: SpeechInfo = {
     ],
   },
   languages: [
-    ['en', 'English'],
-    ['hi', 'Hindi'],
-    ['te', 'Telugu'],
-    ['ta', 'Tamil'],
-    ['pa', 'Punjabi'],
-    ['bn', 'Bengali'],
-  ].map(([code, name]) => ({ code, name, tutor: true, stt: true, tts: true })),
+    ...[
+      ['en', 'English'],
+      ['hi', 'Hindi'],
+      ['te', 'Telugu'],
+      ['ta', 'Tamil'],
+      ['pa', 'Punjabi'],
+      ['bn', 'Bengali'],
+    ].map(([code, name]) => ({ code, name, tutor: true, stt: true, tts: true })),
+    ...[
+      ['de', 'German'],
+      ['fr', 'French'],
+      ['es', 'Spanish'],
+      ['ja', 'Japanese'],
+      ['ko', 'Korean'],
+      ['zh', 'Chinese'],
+      ['it', 'Italian'],
+      ['pt', 'Portuguese'],
+    ].map(([code, name]) => ({ code, name, tutor: false, stt: true, tts: true })),
+  ],
   limits: { max_audio_bytes: 10485760, max_tts_chars: 2000, audio_types: ['audio/webm', 'audio/wav'] },
 }
 

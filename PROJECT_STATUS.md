@@ -1,8 +1,8 @@
 # Project Status
 
-**Current phase:** 8 — Voice tutor ✅ complete on branch `phase-8-voice-tutor`. ⏸ **Checkpoint: awaiting your approval** before Phase 9 (multilingual + language courses).
-`main` (also on GitHub): Phases 0–7 + UI redesign (`edf0d30`).
-**Last updated:** 2026-11-03
+**Current phase:** 9 — Multilingual + language courses ✅ complete on branch `phase-9-languages`. Awaiting your approval before Phase 10 (mind maps).
+`main` (also on GitHub): Phases 0–8 + UI redesign (`ea62b02`).
+**Last updated:** 2026-11-04
 
 ## Completed
 - **Phase 0:** planning documents approved.
@@ -27,16 +27,21 @@
 
 - **Phase 8 (voice tutor):** live spoken conversations over a WebSocket: speak (or type), the transcript is sent or held for correction, the reply streams as text and is spoken sentence by sentence while it is still being written; interrupt or ask something new at any time; automatic reconnection with history; spoken reply style; Voice Learning rebuilt around conversations.
 
-## Test results (actually executed, 2026-11-03)
+- **Phase 9 (multilingual + language courses):** eight world-language courses with CEFR levels: AI-generated vocabulary with spaced-repetition review, grammar, listening, reading, writing (model feedback) and speaking practice marked on the server, role-play conversations in the target language through the voice tutor, and course progress. Speech accepts course languages. A per-language evaluation set checks replies come back in the right language and script.
+
+## Test results (actually executed, 2026-11-04)
 | Suite | Result |
 |---|---|
-| Backend (`pytest`, real Postgres + Redis test DB) | 125 passed (incl. 15 WebSocket tests) |
+| Backend (`pytest`, real Postgres + Redis test DB) | 169 passed (incl. 15 WebSocket and 31 course unit tests) |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 18 files, 124 tests passed (three consecutive full runs) |
+| Frontend (`vitest run`) | 19 files, 135 tests passed (three consecutive full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |
 | Live speech round-trip via curl through the Vite proxy (mock) | `/speech/info` 200 → Hindi text synthesized to a 2.7 s WAV → same WAV transcribed (duration 2714 ms, labelled mock transcript) |
+| Migration 0004 | upgrade → downgrade → upgrade on the dev database; `alembic check` clean |
+| Language evaluation (mock provider) | pipeline runs end to end: 26 cases; English cases pass, other languages fail as expected because the mock replies in English (the checks correctly catch this, including for Latin-script languages) |
+| Real-browser language courses (Playwright, Chromium, through the Vite proxy) | Enrol German A2 → add 8 words → review one (7 due) → grammar marked 100% → listening audio plays → writing feedback 50% (mock) → speaking recorded with the fake mic and marked → role-play opens live in Voice Learning and replies → progress shows a 1-day streak. 1440 px light, 390 px dark; no page errors, no 5xx, no overflow |
 | Real-browser voice tutor (Playwright, Chromium fake microphone, through the Vite proxy) | New conversation → Live → spoken question transcribed and auto-sent → reply streamed with 7 audio sentences → Stop tutor (interrupted; unfinished reply not saved) → review mode: transcript corrected and sent → answered → page reload reconnects with the same history. 1440 px light, 390 px dark; no page errors |
 | Real-browser read-aloud (Playwright, Chromium) | Voice and speed saved → sample synthesized (WAV, mock-calm) and played to the end → settings kept after reload. Lesson reply synthesized and played with progress, then paused, resumed and stopped. 1440 px light, 390 px dark; no page errors |
 | Real-browser voice input (Playwright, Chromium fake microphone) | Voice Learning: record 2 s → real WebM accepted (200) → transcript shown → corrected. Lesson: dictate → text in composer → sent with `input_mode: "voice"` → reply streamed. 1440 px light, 390 px dark; no page errors |
@@ -52,13 +57,17 @@
 - Speech is mock-only: transcripts are placeholders and read-aloud plays tones. Real microphone audio is recorded and uploaded, but not recognised until Gnani is integrated.
 - A voice session stays authorised until it disconnects (the token is checked at connect and each reconnect); per-sentence speech inside a turn is not separately rate-limited (turns are).
 - Speech recognition is per recording (no streaming recognition while you talk); the mock returns placeholder text.
-- The mock AI writes Markdown even in voice conversations; the spoken style applies to the real model. Real speech needs Gnani's official docs + key.
+- The mock AI writes Markdown even in voice conversations; the spoken style applies to the real model.
+- Course content quality (vocabulary, exercises, feedback, role-play) is untested with a real model: no API key yet. The mock produces clearly labelled placeholder material.
+- Speaking scores are only meaningful with real speech recognition (the mock 'hears' placeholder text).
+- The listening transcript is sent to the browser (hidden until shown), so a determined learner can read it early.
+- Subtitle languages are deferred to Phase 12 (videos). Real speech needs Gnani's official docs + key.
 - The dev server's auto-reload did not pick up newly created router files on Windows; restart uvicorn after adding modules.
 - Playwright is used for visual screenshots; the automated E2E suite is still planned for Phase 14.
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
-- Phase 9: multilingual + language courses — language capability matrix, per-language evaluation set, and the world-language courses (DE, FR, ES, JA, KO, ZH, IT, PT; CEFR A1–C2) with vocabulary, grammar, speaking, listening, reading/writing and conversation practice.
+- Phase 10: mind maps — schema, AI generation with validation, React Flow rendering, collapse/expand, export (migration 0005).
 
 ## Blockers / pending inputs
 - `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).

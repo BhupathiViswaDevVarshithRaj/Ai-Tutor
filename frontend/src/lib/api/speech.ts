@@ -1,4 +1,4 @@
-import type { LanguageCode } from '../learning'
+import type { AnyLanguage } from '../learning'
 import { apiFetch, apiRaw } from './client'
 import type { SpeechAudio, SpeechInfo, Transcript } from './types'
 
@@ -7,7 +7,7 @@ export function getSpeechInfo(): Promise<SpeechInfo> {
 }
 
 /** Send a recording (e.g. a MediaRecorder Blob) for transcription. */
-export async function transcribeAudio(audio: Blob, language: LanguageCode): Promise<Transcript> {
+export async function transcribeAudio(audio: Blob, language: AnyLanguage): Promise<Transcript> {
   const res = await apiRaw(`/speech/transcribe?language=${encodeURIComponent(language)}`, {
     method: 'POST',
     headers: { 'Content-Type': audio.type || 'application/octet-stream', Accept: 'application/json' },
@@ -18,7 +18,7 @@ export async function transcribeAudio(audio: Blob, language: LanguageCode): Prom
 
 export async function synthesizeSpeech(data: {
   text: string
-  language: LanguageCode
+  language: AnyLanguage
   voice?: string | null
   speed?: number
 }): Promise<SpeechAudio> {

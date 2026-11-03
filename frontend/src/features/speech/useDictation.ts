@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react'
 import { transcribeAudio } from '../../lib/api/speech'
 import type { Transcript } from '../../lib/api/types'
 import { describeError } from '../../lib/errors'
-import type { LanguageCode } from '../../lib/learning'
+import type { AnyLanguage } from '../../lib/learning'
 import { languageName } from '../../lib/learning'
 import { useRecorder } from './useRecorder'
 import type { Recording } from './useRecorder'
@@ -15,7 +15,7 @@ import { useSpeechInfo } from './useSpeechInfo'
  * recognition is off or doesn't support the language.
  */
 export function useDictation(
-  language: LanguageCode,
+  language: AnyLanguage,
   onTranscript: (transcript: Transcript, recording: Recording) => void,
 ) {
   const info = useSpeechInfo()

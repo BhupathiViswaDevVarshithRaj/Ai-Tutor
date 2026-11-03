@@ -15,6 +15,8 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage'))
 const TutorPage = lazy(() => import('../pages/TutorPage'))
 const LessonPage = lazy(() => import('../pages/LessonPage'))
 const LanguageLearningPage = lazy(() => import('../pages/LanguageLearningPage'))
+const VocabularyPage = lazy(() => import('../pages/VocabularyPage'))
+const PracticePage = lazy(() => import('../pages/PracticePage'))
 const VoiceTutorPage = lazy(() => import('../pages/VoiceTutorPage'))
 const VideoStudioPage = lazy(() => import('../pages/VideoStudioPage'))
 const MindMapPage = lazy(() => import('../pages/MindMapPage'))
@@ -50,6 +52,8 @@ export function AppRoutes() {
           <Route path="tutor" element={<TutorPage />} />
           <Route path="tutor/:lessonId" element={<LessonPage />} />
           <Route path="languages" element={<LanguageLearningPage />} />
+          <Route path="languages/:code/vocabulary" element={<VocabularyPage />} />
+          <Route path="languages/practice/:practiceId" element={<PracticePage />} />
           <Route path="voice" element={<VoiceTutorPage />} />
           <Route path="videos" element={<VideoStudioPage />} />
           <Route path="mind-maps" element={<MindMapPage />} />

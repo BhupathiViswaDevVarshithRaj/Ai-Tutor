@@ -42,7 +42,6 @@ const LANGUAGES: NavItem = {
   icon: Languages,
   accent: 'sun',
   description: 'Vocabulary, grammar and conversation in 8 world languages, A1 to C2.',
-  phase: 9,
 }
 const VOICE: NavItem = {
   to: '/app/voice',

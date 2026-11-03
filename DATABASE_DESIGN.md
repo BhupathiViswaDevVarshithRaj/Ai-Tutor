@@ -110,6 +110,19 @@ Time tracking.
 `id`, `user_id fk`, `lesson_id fk null`, `activity enum(chat, voice, video, mindmap, diagram, quiz)`, `started_at`, `ended_at`, `duration_seconds int`. Index `(user_id, started_at desc)`.
 Total learning time and streaks are aggregated from this table.
 
+### language_enrollments (Phase 9)
+A learner's world-language course and CEFR level.
+`id`, `user_id fk cascade`, `language varchar(10)` (de, fr, es, ja, ko, zh, it, pt), `level cefr_level enum(A1..C2)`, `created_at`, `updated_at`. Unique `(user_id, language)`.
+
+### vocab_items (Phase 9)
+Words in a learner's deck, scheduled with SM-2 spaced repetition.
+`id`, `user_id fk cascade`, `language`, `word varchar(200)`, `reading null` (romaji / romanisation / pinyin), `meaning`, `example null`, `example_translation null`, `level cefr_level`, `topic null`, `ease float default 2.5`, `interval_days int`, `repetitions int`, `lapses int`, `due_at timestamptz`, `last_reviewed_at null`, `created_at`. Unique `(user_id, language, word)`; index `(user_id, language, due_at)`.
+
+### practice_sessions (Phase 9)
+One generated exercise set (grammar, listening, reading, writing, speaking) or a role-play.
+`id`, `user_id fk cascade`, `language`, `level cefr_level`, `skill practice_skill enum`, `topic null`, `content jsonb` (validated generated material; answers are withheld from the API until submission), `answers jsonb null`, `result jsonb null` (per-item marks or writing feedback), `score float null (0..1)`, `conversation_id fk conversations set null` (role-plays), `created_at`, `completed_at null`. Index `(user_id, language, created_at desc)`.
+Course progress (words learned/mastered/due, per-skill averages, streak) is computed from these tables.
+
 ## Derived analytics (queries, not tables)
 - Completed lessons: `lessons.status = 'completed'`.
 - Total time: `sum(learning_sessions.duration_seconds)`.
@@ -121,10 +134,11 @@ Total learning time and streaks are aggregated from this table.
 1. `0001_extensions`: `CREATE EXTENSION vector, citext, pgcrypto`.
 2. `0002_auth`: users, user_preferences, refresh_tokens, password_reset_tokens.
 3. `0003_learning`: lessons, conversations, messages.
-4. `0004_rag`: learning_resources, document_chunks, embeddings + HNSW.
+4. `0004_language_courses` (Phase 9, built): language_enrollments, vocab_items, practice_sessions.
 5. `0005_visual`: mind_maps, diagrams.
 6. `0006_media_video`: media_assets, video_jobs.
 7. `0007_assessment`: quizzes, quiz_questions, quiz_submissions, quiz_answers.
 8. `0008_progress`: topic_mastery, learning_sessions.
+9. `0009_rag` (later): learning_resources, document_chunks, embeddings + HNSW. (RAG was deferred from Phase 4, so its migration moves after the others.)
 
 Each migration ships with the phase that needs it, so we do not run unused schema ahead of time.

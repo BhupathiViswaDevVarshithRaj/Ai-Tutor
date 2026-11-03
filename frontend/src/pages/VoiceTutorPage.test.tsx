@@ -88,7 +88,8 @@ describe('Voice Learning speech status', () => {
     renderWithProviders(<AppRoutes />, { route: '/app/voice' })
 
     const table = await screen.findByRole('table', { name: 'Language support' })
-    expect(within(table).getAllByRole('row')).toHaveLength(7)
+    expect(within(table).getAllByRole('row')).toHaveLength(15) // header + 6 tutor + 8 course languages
+    expect(within(table).getByLabelText('Japanese tutor not supported')).toBeInTheDocument()
     expect(within(table).getByLabelText('Telugu speech recognition supported')).toBeInTheDocument()
     expect(screen.getAllByText('Mock')).toHaveLength(2)
     expect(screen.getByRole('option', { name: 'Mock voice (calm)' })).toBeInTheDocument()

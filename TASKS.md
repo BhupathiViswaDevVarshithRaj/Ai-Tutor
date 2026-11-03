@@ -88,7 +88,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 7.7 Settings → System shows the live AI model and speech providers (replacing static text)
 - [x] 7.8 Tests: frontend 117 (14 new, fake audio helper); real Chromium run: sample played to the end, voice/speed kept after reload, lesson reply played with progress, pause, resume and stop; 1440 px light / 390 px dark
 
-## Phase 8 — Voice tutor ✅ (branch `phase-8-voice-tutor`, ⏸ awaiting your approval)
+## Phase 8 — Voice tutor ✅ (merged to `main`)
 - [x] 8.1 WebSocket `/api/v1/voice/ws`: hello handshake with access token, origin check, conversation ownership; close codes 4400/4401/4403/4404; ping/pong
 - [x] 8.2 Recording upload over the socket (header + binary frame), validated with the same checks as `/speech/transcribe`, then transcribed
 - [x] 8.3 Turns reuse the tutor pipeline (`turn_events`, shared with the SSE route); spoken reply style for voice conversations
@@ -99,5 +99,19 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 8.8 `GET /conversations?mode=voice`; Voice Learning no longer marked "soon"
 - [x] 8.9 Tests: backend 125 (18 new, WebSocket tests with `httpx-ws`), frontend 124 (13 new, fake WebSocket); real Chromium run with a fake microphone: speak → transcript → streamed reply with 7 audio sentences → interrupt → review-and-correct → reply → reload reconnects with history; 1440 px light / 390 px dark
 
-## Phases 9–15
+## Phase 9 — Multilingual + language courses ✅ (branch `phase-9-languages`, awaiting your approval)
+- [x] 9.1 Migration 0004: `language_enrollments`, `vocab_items` (SM-2 state), `practice_sessions`; reversible, `alembic check` clean
+- [x] 9.2 Courses API (`/languages`): course list with level and word counts, enrol / change CEFR level (A1–C2)
+- [x] 9.3 Vocabulary: AI-generated words at the learner's level (articles for gendered nouns, readings for ja/ko/zh, examples), deduplicated per deck; SM-2 review (again/hard/good/easy); delete
+- [x] 9.4 Practice generated with validated structured output: grammar lesson + exercises, listening script + questions, graded reading + questions, writing task, speaking phrases; answers withheld from the API until submission
+- [x] 9.5 Marking: grammar/listening/reading by rule (Unicode-normalised, accepted alternatives), speaking by similarity of the recognised speech (works for CJK), writing by the model (corrections, strengths, score)
+- [x] 9.6 Conversation practice: role-play in the course language (CEFR-pitched, in-role replies with English tips, readings for ja/ko/zh) as a voice conversation in Voice Learning
+- [x] 9.7 Progress API: words total/learned/mastered/due, per-skill sessions and averages, streak, active days
+- [x] 9.8 Speech accepts course languages; capability matrix lists tutor + course languages
+- [x] 9.9 Per-language evaluation set (`backend/evals`): 18 tutor cases (6 languages × 3 levels) + 8 role-play cases; deterministic checks (native-script share, function words for Latin-script languages, understanding-check question); runner refuses paid calls without `--yes`
+- [x] 9.10 Frontend: Language Learning (server-backed course and level, real progress, working skill buttons with optional topic, role-play with situations, recent practice), Vocabulary review page, Practice page for each skill; static sample words removed
+- [x] 9.11 Tests: backend 169 (44 new), frontend 135 (11 new); real Chromium run through the dev servers covering every skill, 1440 px light / 390 px dark
+- [ ] Deferred: subtitle languages → Phase 12 (needs video); running the evaluation against the real model → once `ANTHROPIC_API_KEY` is set
+
+## Phases 10–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

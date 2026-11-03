@@ -152,6 +152,8 @@ def _mock_choice(n: int) -> Exercise:
 
 def _mock_course_content(schema: type, prompt: str, topic: str):
     """Placeholder course material, clearly marked as mock, for keyless development."""
+    if topic.startswith("your choice"):  # no topic given: the prompt's placeholder text
+        topic = "everyday life"
     if schema is VocabList:
         # Number new words after the known ones so repeated requests add new cards.
         known = _field(prompt, "Already known", "")

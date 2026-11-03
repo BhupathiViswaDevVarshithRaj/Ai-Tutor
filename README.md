@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–8 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), and the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–9 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation. Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)
@@ -101,6 +101,7 @@ docker-compose.yml   Postgres (pgvector) + Redis
 | AI tutor | `GET /tutor/info`, `POST /tutor/lessons` (plan + classroom), `POST /tutor/conversations/{id}/reply` (SSE stream), `POST /tutor/lessons/{id}/summary` |
 | Speech | `GET /speech/info`, `POST /speech/transcribe?language=` (raw audio body), `POST /speech/synthesize` (returns audio) |
 | Voice tutor | WebSocket `/voice/ws` (protocol in ARCHITECTURE.md › Voice tutor) |
+| Language courses | `GET /languages`, `PUT /languages/{code}`, `GET /languages/{code}/progress`, `GET /languages/{code}/vocabulary`, `POST /languages/{code}/vocabulary/generate`, `POST /languages/vocabulary/{id}/review`, `DELETE /languages/vocabulary/{id}`, `GET/POST /languages/{code}/practice`, `GET /languages/practice/{id}`, `POST /languages/practice/{id}/submit` |
 
 \* Cookie-authenticated routes require the header `X-CSRF-Protection: 1`. Other routes use `Authorization: Bearer <access_token>`.
 Interactive docs: http://localhost:8000/docs
@@ -108,6 +109,8 @@ Interactive docs: http://localhost:8000/docs
 **AI tutor:** set `ANTHROPIC_API_KEY` in `.env` and restart the backend to use Claude (`claude-opus-5-5` by default; see the `LLM_*` settings). Without a key the app runs on a clearly labelled mock provider.
 
 **Speech:** runs on mock providers (`STT_PROVIDER=mock`, `TTS_PROVIDER=mock`), labelled "Mock" in the UI. The Gnani adapters are placeholders: they make no network calls and are implemented only once Gnani's official API documentation is available.
+
+**Language evaluation:** `cd backend && .venv/Scripts/python -m evals.run_language_eval` checks that tutor and role-play replies come back in the right language. With the mock it only exercises the pipeline; add `--yes` to run it against the real model (paid API calls).
 
 **Password reset in development:** without SMTP settings, the reset email (with its link) is printed in the backend log.
 

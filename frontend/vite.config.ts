@@ -17,5 +17,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    // Full-page flow tests (lazy routes + simulated typing) need headroom on slower machines.
+    testTimeout: 20_000,
   },
 })

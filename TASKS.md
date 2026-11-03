@@ -61,5 +61,14 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 4.7 Tests: backend 66 (incl. fake-SDK and real-SDK-over-mock-transport checks), frontend 87; live browser run through the dev servers
 - [ ] Deferred: mastery tracking from understanding checks → Phase 13 (needs `topic_mastery`, migration 0008); quiz generation → Phase 13; RAG over uploaded material → later phase (no upload UI yet)
 
-## Phases 5–15
+## Phase 5 — Speech abstraction ✅ (branch `phase-5-speech`, awaiting your approval)
+- [x] 5.1 `STTProvider` / `TTSProvider` interfaces (`app/ai/speech/base.py`): `Transcript`, `AudioResult`, `Voice`, capability methods, `SpeechError` / `ProviderNotConfigured` / `UnsupportedLanguage`
+- [x] 5.2 Mock providers: STT returns a clearly labelled placeholder transcript (with real WAV duration); TTS returns a real WAV with realistic duration, two voices and speed control (quiet tones per word, obviously not speech)
+- [x] 5.3 Gnani adapters as disabled placeholders: no endpoints, auth or payload formats; no network code; report why they are unavailable (disabled / missing credentials / not implemented)
+- [x] 5.4 Config: `STT_PROVIDER`, `TTS_PROVIDER`, `GNANI_*` (backend only), `SPEECH_MAX_AUDIO_BYTES`, `SPEECH_MAX_TTS_CHARS`, `SPEECH_RATE_LIMIT`
+- [x] 5.5 API: `GET /speech/info` (providers, availability, voices, language matrix, limits), `POST /speech/transcribe` (raw audio body; type, magic-byte, size and length checks), `POST /speech/synthesize` (audio + `X-Speech-*` headers); rate-limited
+- [x] 5.6 Frontend: `lib/api/speech.ts` client (+ `apiRaw` for binary bodies), live "Speech services" card and real voice list on Voice Learning
+- [x] 5.7 Tests: backend 106 (40 new), frontend 92 (5 new); live round-trip through the dev servers; Playwright check of Voice Learning at 1440 px (light) and 390 px (dark)
+
+## Phases 6–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

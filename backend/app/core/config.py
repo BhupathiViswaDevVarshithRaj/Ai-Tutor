@@ -65,6 +65,19 @@ class Settings(BaseSettings):
     ai_rate_limit: int = 20
     ai_rate_window_seconds: int = 60
 
+    # --- Speech (STT / TTS) ---
+    stt_provider: Literal["mock", "gnani"] = "mock"
+    tts_provider: Literal["mock", "gnani"] = "mock"
+    # Gnani placeholders: read only by the disabled adapters, never sent to the frontend.
+    gnani_api_key: str = ""
+    gnani_api_base_url: str = ""
+    gnani_stt_enabled: bool = False
+    gnani_tts_enabled: bool = False
+    speech_max_audio_bytes: int = 10 * 1024 * 1024
+    speech_max_tts_chars: int = 2000
+    speech_rate_limit: int = 30
+    speech_rate_window_seconds: int = 60
+
     # --- Email (optional; console mailer is used when SMTP_HOST is empty) ---
     smtp_host: str = ""
     smtp_port: int = 587

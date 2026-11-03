@@ -8,6 +8,12 @@ os.environ["SECRET_KEY"] = "test-secret-key-not-for-production-use-0123456789"
 os.environ["LLM_PROVIDER"] = "mock"
 os.environ["ANTHROPIC_API_KEY"] = ""
 os.environ["MOCK_STREAM_DELAY_SECONDS"] = "0"
+os.environ["STT_PROVIDER"] = "mock"
+os.environ["TTS_PROVIDER"] = "mock"
+os.environ["GNANI_API_KEY"] = ""
+os.environ["GNANI_API_BASE_URL"] = ""
+os.environ["GNANI_STT_ENABLED"] = "false"
+os.environ["GNANI_TTS_ENABLED"] = "false"
 
 import asyncio  # noqa: E402
 import socket  # noqa: E402

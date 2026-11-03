@@ -1,8 +1,12 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 
 import { setSession } from '../lib/api/client'
+
+// Routes are lazy-loaded: the first visit to a page transforms its chunk, which can exceed the
+// 1 s default wait when the whole suite runs in parallel on a busy machine.
+configure({ asyncUtilTimeout: 5000 })
 
 /** jsdom lacks IntersectionObserver (used by scroll reveals); report everything as visible. */
 class VisibleIntersectionObserver {

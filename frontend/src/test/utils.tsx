@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { vi } from 'vitest'
 
 import { AppProviders } from '../app/AppProviders'
-import type { Page, TokenResponse, User } from '../lib/api/types'
+import type { Page, SpeechInfo, TokenResponse, User } from '../lib/api/types'
 
 export function renderWithProviders(ui: ReactElement, { route = '/' } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -74,6 +74,32 @@ const healthy = () =>
     checks: { database: { status: 'ok', latency_ms: 1 }, redis: { status: 'ok', latency_ms: 1 } },
   })
 
+const ALL_LANGS = ['bn', 'en', 'hi', 'pa', 'ta', 'te']
+
+export const MOCK_SPEECH_INFO: SpeechInfo = {
+  stt: { provider: 'mock', is_mock: true, available: true, unavailable_reason: null, languages: ALL_LANGS },
+  tts: {
+    provider: 'mock',
+    is_mock: true,
+    available: true,
+    unavailable_reason: null,
+    languages: ALL_LANGS,
+    voices: [
+      { id: 'mock-bright', name: 'Mock voice (bright)', languages: ALL_LANGS },
+      { id: 'mock-calm', name: 'Mock voice (calm)', languages: ALL_LANGS },
+    ],
+  },
+  languages: [
+    ['en', 'English'],
+    ['hi', 'Hindi'],
+    ['te', 'Telugu'],
+    ['ta', 'Tamil'],
+    ['pa', 'Punjabi'],
+    ['bn', 'Bengali'],
+  ].map(([code, name]) => ({ code, name, tutor: true, stt: true, tts: true })),
+  limits: { max_audio_bytes: 10485760, max_tts_chars: 2000, audio_types: ['audio/webm', 'audio/wav'] },
+}
+
 /** Backend where the refresh cookie restores a session for TEST_USER. */
 export function signedInApi(extra: Record<string, Handler> = {}, user: User = TEST_USER) {
   return mockApi({
@@ -83,6 +109,7 @@ export function signedInApi(extra: Record<string, Handler> = {}, user: User = TE
     'GET /lessons': () => jsonResponse(EMPTY_PAGE),
     'GET /tutor/info': () =>
       jsonResponse({ provider: 'mock', is_mock: true, tutor_model: 'mock-tutor', structured_model: 'mock-tutor' }),
+    'GET /speech/info': () => jsonResponse(MOCK_SPEECH_INFO),
     ...extra,
   })
 }

@@ -105,9 +105,8 @@ backend/app/
     tutor.py  lesson_planner.py  mindmap.py  diagram.py  quiz.py  video_script.py
     rag/                  chunker.py, embedder.py, retriever.py
     orchestrator.py       wires providers, retries, timeouts, validation
-  speech/
-    stt/                  base.py, mock.py, gnani.py (disabled stub)
-    tts/                  base.py, mock.py, gnani.py (disabled stub)
+  ai/speech/              base.py (STT/TTS interfaces), mock.py, gnani.py (disabled stub),
+                          audio.py (format sniffing, WAV), factory.py
   video/                  scene_spec.py (Pydantic), scenes/ (templated Manim classes),
                           renderer.py, compositor.py (FFmpeg), subtitles.py (SRT/VTT)
   workers/                arq WorkerSettings, tasks (render_video, embed_resource)

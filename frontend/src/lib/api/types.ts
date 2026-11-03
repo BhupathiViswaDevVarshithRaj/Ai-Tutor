@@ -84,3 +84,37 @@ export type AIInfo = {
   tutor_model: string
   structured_model: string
 }
+
+export type SpeechProviderInfo = {
+  provider: string
+  is_mock: boolean
+  available: boolean
+  unavailable_reason: string | null
+  languages: string[]
+}
+
+export type Voice = { id: string; name: string; languages: string[] }
+
+export type SpeechInfo = {
+  stt: SpeechProviderInfo
+  tts: SpeechProviderInfo & { voices: Voice[] }
+  languages: { code: string; name: string; tutor: boolean; stt: boolean; tts: boolean }[]
+  limits: { max_audio_bytes: number; max_tts_chars: number; audio_types: string[] }
+}
+
+export type Transcript = {
+  text: string
+  language: string
+  confidence: number | null
+  duration_ms: number | null
+  provider: string
+  is_mock: boolean
+}
+
+export type SpeechAudio = {
+  audio: Blob
+  durationMs: number
+  voice: string
+  provider: string
+  isMock: boolean
+}

@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–4 are complete: architecture and planning, environment, UI, accounts and data storage, and the AI tutor (lesson plans, streamed explanations, summaries). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–5 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), and the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)
@@ -99,11 +99,14 @@ docker-compose.yml   Postgres (pgvector) + Redis
 | Lessons | `GET/POST /lessons`, `GET/PATCH/DELETE /lessons/{id}` |
 | Conversations | `GET/POST /conversations`, `GET/DELETE /conversations/{id}`, `POST /conversations/{id}/messages` |
 | AI tutor | `GET /tutor/info`, `POST /tutor/lessons` (plan + classroom), `POST /tutor/conversations/{id}/reply` (SSE stream), `POST /tutor/lessons/{id}/summary` |
+| Speech | `GET /speech/info`, `POST /speech/transcribe?language=` (raw audio body), `POST /speech/synthesize` (returns audio) |
 
 \* Cookie-authenticated routes require the header `X-CSRF-Protection: 1`. Other routes use `Authorization: Bearer <access_token>`.
 Interactive docs: http://localhost:8000/docs
 
 **AI tutor:** set `ANTHROPIC_API_KEY` in `.env` and restart the backend to use Claude (`claude-opus-5-5` by default; see the `LLM_*` settings). Without a key the app runs on a clearly labelled mock provider.
+
+**Speech:** runs on mock providers (`STT_PROVIDER=mock`, `TTS_PROVIDER=mock`), labelled "Mock" in the UI. The Gnani adapters are placeholders: they make no network calls and are implemented only once Gnani's official API documentation is available.
 
 **Password reset in development:** without SMTP settings, the reset email (with its link) is printed in the backend log.
 

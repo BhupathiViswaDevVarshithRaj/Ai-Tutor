@@ -145,6 +145,31 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   return body as T
 }
 
+/**
+ * Authenticated request with a raw body (e.g. an audio Blob) that returns the raw Response,
+ * for binary uploads and downloads. Retries once after refreshing on 401; throws ApiError
+ * on any other non-2xx status.
+ */
+export async function apiRaw(path: string, init: RequestInit = {}): Promise<Response> {
+  const send = () =>
+    fetch(`${API_BASE}${path}`, {
+      credentials: 'include',
+      ...init,
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...init.headers,
+      },
+    })
+
+  let res = await send()
+  if (res.status === 401 && (await refreshSession())) res = await send()
+  if (!res.ok) {
+    const body = await parseBody(res)
+    throw new ApiError(res.status, errorMessage(body, res.status), body)
+  }
+  return res
+}
+
 // --- Server-sent event streams (POST + auth, so EventSource can't be used) ---
 
 export type StreamHandler = (event: string, data: unknown) => void

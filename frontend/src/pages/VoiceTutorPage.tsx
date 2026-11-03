@@ -9,12 +9,15 @@ import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/feedback'
 import { Field, Select } from '../components/ui/form'
+import { SpeechStatus } from '../features/speech/SpeechStatus'
+import { useSpeechInfo } from '../features/speech/useSpeechInfo'
 import { languageLabel } from '../lib/learning'
 
 const SPEEDS = ['0.75', '1.0', '1.25', '1.5']
 
 export default function VoiceTutorPage() {
   const { language } = usePreferences()
+  const voices = useSpeechInfo().data?.tts.voices ?? []
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -29,9 +32,9 @@ export default function VoiceTutorPage() {
         }
       />
       <PhaseNotice phase={8}>
-        Speech recognition (Phase 6) and speech output (Phase 7) join the tutor in a live voice
-        conversation in Phase 8. Real speech services are enabled once the Gnani provider is
-        configured.
+        The speech services are connected (see their live status below). Recording arrives in
+        Phase 6, read-aloud in Phase 7, and both join the tutor in a live voice conversation in
+        Phase 8. Real speech replaces the mock once the Gnani provider is configured.
       </PhaseNotice>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -74,13 +77,25 @@ export default function VoiceTutorPage() {
             <Field label="Voice" hint="Available voices depend on the speech provider.">
               {(c) => (
                 <Select {...c} disabled>
-                  <option>Default</option>
+                  <option value="">Default</option>
+                  {voices.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
                 </Select>
               )}
             </Field>
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader title="Speech services" />
+        <CardBody>
+          <SpeechStatus />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader title="Transcript" />

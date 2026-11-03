@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.ai.llm.base import LLMError, LLMRefusal
+from app.ai.speech.base import ProviderNotConfigured, SpeechError, UnsupportedLanguage
 
 
 class AppError(Exception):
@@ -36,3 +37,13 @@ def register_error_handlers(app: FastAPI) -> None:
                 "code": "ai_refused" if refused else "ai_unavailable",
             },
         )
+
+    @app.exception_handler(SpeechError)
+    async def _speech_error(_: Request, exc: SpeechError) -> JSONResponse:
+        if isinstance(exc, UnsupportedLanguage):
+            status, code = 422, "unsupported_language"
+        elif isinstance(exc, ProviderNotConfigured):
+            status, code = 503, "speech_not_configured"
+        else:
+            status, code = 503, "speech_unavailable"
+        return JSONResponse(status_code=status, content={"detail": exc.user_message, "code": code})

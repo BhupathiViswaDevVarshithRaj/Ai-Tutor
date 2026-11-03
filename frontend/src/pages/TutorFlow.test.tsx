@@ -83,9 +83,8 @@ describe('AI tutor flow', () => {
     await user.click(screen.getByRole('radio', { name: 'Advanced' }))
     await user.click(start)
 
-    // First visit lazy-loads the lesson page chunk, which can be slow under a full test run.
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'How plants make food' }, { timeout: 4000 }),
+      await screen.findByRole('heading', { level: 1, name: 'How plants make food' }),
     ).toBeInTheDocument()
     expect(api.find('POST /tutor/lessons')[0].body).toEqual({
       topic: 'Why is the sky blue?',

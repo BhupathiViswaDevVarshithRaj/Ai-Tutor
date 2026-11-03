@@ -5,8 +5,9 @@ import { afterEach, vi } from 'vitest'
 import { setSession } from '../lib/api/client'
 
 // Routes are lazy-loaded: the first visit to a page transforms its chunk, which can exceed the
-// 1 s default wait when the whole suite runs in parallel on a busy machine.
-configure({ asyncUtilTimeout: 5000 })
+// 1 s default wait when the whole suite runs in parallel on a busy machine (seen up to ~5 s
+// with 24 test files). Tests still fail after 20 s (vite.config.ts testTimeout).
+configure({ asyncUtilTimeout: 10_000 })
 
 /** jsdom lacks IntersectionObserver (used by scroll reveals); report everything as visible. */
 class VisibleIntersectionObserver {

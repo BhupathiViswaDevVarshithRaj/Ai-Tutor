@@ -78,7 +78,7 @@ Unique `(chunk_id, model)`. **HNSW index** `USING hnsw (embedding vector_cosine_
 ### mind_maps (built in Phase 10)
 `id`, `user_id fk`, `lesson_id fk null`, `topic`, `language`, `level`, `graph jsonb` (validated `MindMap`), `layout jsonb null` (user-moved node positions, collapsed state), `version int default 1`, `created_at`, `updated_at`. Index `(user_id, created_at desc)`.
 
-### diagrams
+### diagrams (built in Phase 11)
 `id`, `user_id fk`, `lesson_id fk null`, `title`, `diagram_type enum(flowchart, block, timeline, graph_fn, process, freehand)`, `spec jsonb` (validated `DiagramSpec`), `canvas_strokes jsonb null` (freehand layer), `created_at`, `updated_at`.
 
 ### video_jobs
@@ -136,7 +136,7 @@ Course progress (words learned/mastered/due, per-skill averages, streak) is comp
 3. `0003_learning`: lessons, conversations, messages.
 4. `0004_language_courses` (Phase 9, built): language_enrollments, vocab_items, practice_sessions.
 5. `0005_mind_maps` (Phase 10, built): mind_maps.
-6. `0006_diagrams` (Phase 11): diagrams.
+6. `0006_diagrams` (Phase 11, built): diagrams.
 7. `0007_media_video`: media_assets, video_jobs.
 8. `0008_assessment`: quizzes, quiz_questions, quiz_submissions, quiz_answers.
 9. `0009_progress`: topic_mastery, learning_sessions.

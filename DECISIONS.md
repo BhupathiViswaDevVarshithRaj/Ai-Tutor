@@ -72,3 +72,8 @@
 | D-068 | 2026-11-04 | React Flow 12.12.0 (not 12.12.1, published two days earlier) and html-to-image 1.11.11 (the version React Flow's export example uses) | Prefer releases that have been out a while; later html-to-image versions had export bugs. | Accepted |
 | D-069 | 2026-11-04 | `migration 0005` holds only `mind_maps`; `diagrams` moves to Phase 11's migration | Each migration ships with the phase that uses it. | Accepted |
 | D-070 | 2026-11-04 | The Google Fonts stylesheet is loaded with `crossorigin="anonymous"` | Lets image export read the font rules and embed the fonts (otherwise the browser blocks them and logs errors). | Accepted |
+| D-071 | 2026-11-04 | The model describes diagrams (items, links, reveal steps) and the app computes the layout | No overlapping boxes from made-up coordinates; layouts stay consistent and testable. | Accepted |
+| D-072 | 2026-11-04 | Function graphs use one small whitelisted formula grammar, implemented in Python (check) and TypeScript (parse + evaluate), never `eval` | Safe by construction; the shared test list keeps both sides in step. | Accepted |
+| D-073 | 2026-11-04 | Freehand drawing is an SVG layer on the same board (not a separate Canvas) | Diagram and drawing export together as one SVG/PNG, and erasing works per stroke. | Accepted |
+| D-074 | 2026-11-04 | The board uses fixed hex colours in both themes ("whiteboard" look) | Exports match the screen; CSS variables don't survive in a standalone SVG. | Accepted |
+| D-075 | 2026-11-04 | Testing Library waits up to 10 s (was 5 s) | With 24 test files in parallel, the first visit to a lazy page occasionally took ~5 s on this machine; tests still fail after 20 s. | Accepted |

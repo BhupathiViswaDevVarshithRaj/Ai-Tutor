@@ -1,53 +1,69 @@
-import {
-  Download,
-  Eraser,
-  Highlighter,
-  MousePointer2,
-  Pencil,
-  Redo2,
-  RotateCcw,
-  Shapes,
-  Spline,
-  Type,
-  Undo2,
-} from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { PenLine, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 
+import { usePreferences } from '../app/preferences-context'
 import { PageHeader } from '../components/PageHeader'
-import { PhaseNotice } from '../components/PhaseNotice'
-import { Toolbar } from '../components/Toolbar'
-import { GraphPlot } from '../components/illustrations/Science'
+import { TopicForm } from '../components/TopicForm'
 import { WhiteboardArt } from '../components/illustrations/Visual'
 import { Float } from '../components/motion/Motion'
+import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { cn } from '../components/ui/cn'
-import { EmptyState } from '../components/ui/feedback'
+import { Alert, Badge, EmptyState, Skeleton } from '../components/ui/feedback'
+import { Field, Select } from '../components/ui/form'
+import { plural } from '../features/whiteboard/board'
+import { WhiteboardWorkspace } from '../features/whiteboard/WhiteboardWorkspace'
+import { createDiagram, createSketch, deleteDiagram, getDiagram, listDiagrams } from '../lib/api/diagrams'
+import type { DiagramRequestType } from '../lib/api/diagrams'
+import type { DiagramType } from '../lib/api/types'
+import { describeError } from '../lib/errors'
 
-const DRAW_TOOLS = [
-  { label: 'Select', icon: MousePointer2 },
-  { label: 'Pen', icon: Pencil },
-  { label: 'Highlighter', icon: Highlighter },
-  { label: 'Shapes', icon: Shapes },
-  { label: 'Connector', icon: Spline },
-  { label: 'Text', icon: Type },
-  { label: 'Eraser', icon: Eraser },
-]
-const EDIT_TOOLS = [
-  { label: 'Undo', icon: Undo2 },
-  { label: 'Redo', icon: Redo2 },
-  { label: 'Reset board', icon: RotateCcw },
-  { label: 'Export', icon: Download },
-]
-const INKS = ['bg-[#1f1b2d]', 'bg-brand-500', 'bg-tangerine', 'bg-mint-deep', 'bg-sky']
-const DIAGRAM_TYPES = [
-  'Flowcharts',
-  'Block diagrams',
-  'Function graphs',
-  'Science diagrams',
-  'Process diagrams',
-  'Timelines',
+const TYPE_LABEL: Record<DiagramType, string> = {
+  flowchart: 'Flowchart',
+  block: 'Block diagram',
+  process: 'Cycle',
+  timeline: 'Timeline',
+  graph_fn: 'Function graph',
+  freehand: 'Sketch',
+}
+const TYPE_OPTIONS: { value: DiagramRequestType; label: string }[] = [
+  { value: 'auto', label: 'Let the tutor choose' },
+  { value: 'flowchart', label: 'Flowchart (steps and decisions)' },
+  { value: 'block', label: 'Block diagram (parts of a system)' },
+  { value: 'process', label: 'Cycle (a repeating process)' },
+  { value: 'timeline', label: 'Timeline (events in order)' },
+  { value: 'graph_fn', label: 'Function graph (maths)' },
 ]
 
 export default function WhiteboardPage() {
+  const queryClient = useQueryClient()
+  const { language, level } = usePreferences()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openId = searchParams.get('d')
+  const [diagramType, setDiagramType] = useState<DiagramRequestType>('auto')
+
+  const boards = useQuery({ queryKey: ['diagrams'], queryFn: () => listDiagrams({ limit: 30 }) })
+  const current = useQuery({ queryKey: ['diagram', openId], queryFn: () => getDiagram(openId!), enabled: openId !== null })
+  const opened = (id: string, data: Awaited<ReturnType<typeof getDiagram>>) => {
+    queryClient.setQueryData(['diagram', id], data)
+    void queryClient.invalidateQueries({ queryKey: ['diagrams'] })
+    setSearchParams({ d: id })
+  }
+  const create = useMutation({ mutationFn: createDiagram, onSuccess: (d) => opened(d.id, d) })
+  const sketch = useMutation({
+    mutationFn: () => createSketch({ title: `Sketch · ${new Date().toLocaleDateString()}`, language, level }),
+    onSuccess: (d) => opened(d.id, d),
+  })
+  const remove = useMutation({
+    mutationFn: deleteDiagram,
+    onSuccess: (_, id) => {
+      void queryClient.invalidateQueries({ queryKey: ['diagrams'] })
+      if (id === openId) setSearchParams({})
+    },
+  })
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
@@ -60,62 +76,107 @@ export default function WhiteboardPage() {
           </Float>
         }
       />
-      <PhaseNotice phase={11}>
-        AI-drawn diagrams with step-by-step playback, a freehand drawing canvas, and SVG/PNG export.
-      </PhaseNotice>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_19rem]">
-        <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2 border-b-2 border-ink px-3 py-2">
-            <Toolbar label="Drawing tools" tools={DRAW_TOOLS} disabledReason="available in Phase 11" />
-            <div className="flex items-center gap-1.5 px-2" aria-label="Ink colours (Phase 11)" role="group">
-              {INKS.map((ink) => (
-                <span key={ink} aria-hidden className={cn('size-6 rounded-full border-2 border-ink opacity-50', ink)} />
-              ))}
-            </div>
-            <div className="flex-1" />
-            <Toolbar label="Board actions" tools={EDIT_TOOLS} disabledReason="available in Phase 11" />
-          </div>
-          <div className="flex min-h-[30rem] items-center justify-center bg-grid">
-            <EmptyState
-              art={<GraphPlot className="w-full -rotate-3" />}
-              title="Blank canvas"
-              description="Ask the tutor to explain a concept visually, or start sketching."
-            />
-          </div>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Draw a diagram" />
+          <CardBody>
+            <TopicForm
+              submitLabel="Draw it"
+              topicLabel="What should the tutor draw?"
+              placeholder="e.g. How a bill becomes law, or y = x² − 4"
+              onSubmit={(values) => create.mutate({ ...values, diagram_type: diagramType })}
+              pending={create.isPending}
+              pendingText="Drawing your diagram…"
+              error={create.isError ? describeError(create.error) : undefined}
+            >
+              <Field label="Diagram type">
+                {(c) => (
+                  <Select {...c} value={diagramType} onChange={(e) => setDiagramType(e.target.value as DiagramRequestType)}>
+                    {TYPE_OPTIONS.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            </TopicForm>
+          </CardBody>
         </Card>
-
-        <div className="space-y-6">
-          <Card tone="sun">
-            <CardHeader title="Step by step" />
-            <CardBody>
-              <ol className="space-y-3" aria-label="Explanation steps (empty)">
-                {[1, 2, 3].map((n) => (
-                  <li key={n} className="flex items-center gap-3">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-surface font-display font-bold text-fg">
-                      {n}
-                    </span>
-                    <span className="h-3 flex-1 rounded-full bg-[#1f1b2d]/15" aria-hidden />
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-4 text-sm opacity-80">Each step of the drawing is explained here as it appears.</p>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardHeader title="Diagram types" />
-            <CardBody>
-              <ul className="flex flex-wrap gap-2">
-                {DIAGRAM_TYPES.map((d) => (
-                  <li key={d} className="rounded-full border-2 border-line px-3 py-1 text-xs font-semibold">
-                    {d}
+        <Card tone="lavender">
+          <CardHeader
+            title="Your boards"
+            action={
+              <Button size="sm" variant="secondary" loading={sketch.isPending} onClick={() => sketch.mutate()}>
+                <Plus className="size-4" aria-hidden /> New blank board
+              </Button>
+            }
+          />
+          <CardBody>
+            {sketch.isError && <Alert>{describeError(sketch.error)}</Alert>}
+            {boards.isPending ? (
+              <Skeleton className="h-24" />
+            ) : boards.isError ? (
+              <Alert>{describeError(boards.error)}</Alert>
+            ) : boards.data.items.length === 0 ? (
+              <p className="text-sm">No boards yet. Ask for a diagram, or start a blank board.</p>
+            ) : (
+              <ul className="space-y-2" aria-label="Your boards">
+                {boards.data.items.map((b) => (
+                  <li key={b.id} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSearchParams({ d: b.id })}
+                      aria-current={b.id === openId ? 'true' : undefined}
+                      className={cn(
+                        'min-w-0 flex-1 rounded-2xl border-2 px-3 py-2 text-left text-sm text-fg transition-colors',
+                        b.id === openId ? 'border-ink bg-sun text-[#1f1b2d]' : 'border-line bg-surface hover:border-ink',
+                      )}
+                    >
+                      <span className="block truncate font-semibold">{b.title}</span>
+                      <span className="text-xs opacity-75">
+                        {TYPE_LABEL[b.diagram_type]}
+                        {b.step_count > 0 && ` · ${plural(b.step_count, 'step')}`}
+                        {b.stroke_count > 0 && ` · ${plural(b.stroke_count, 'stroke')}`}
+                      </span>
+                    </button>
+                    <Button variant="ghost" size="icon" aria-label={`Delete ${b.title}`} disabled={remove.isPending} onClick={() => remove.mutate(b.id)}>
+                      <Trash2 className="size-4" aria-hidden />
+                    </Button>
                   </li>
                 ))}
               </ul>
-            </CardBody>
-          </Card>
-        </div>
+            )}
+            {remove.isError && <Alert>{describeError(remove.error)}</Alert>}
+          </CardBody>
+        </Card>
       </div>
+
+      <Card className="overflow-hidden">
+        {openId === null ? (
+          <EmptyState
+            art={<WhiteboardArt className="w-full" />}
+            title="Blank canvas"
+            description="Ask the tutor to explain a concept visually, or start a blank board and sketch."
+          />
+        ) : current.isPending ? (
+          <Skeleton className="h-[60vh]" />
+        ) : current.isError ? (
+          <div className="p-6">
+            <Alert>{describeError(current.error)}</Alert>
+          </div>
+        ) : (
+          <>
+            <header className="flex flex-wrap items-center gap-2 border-b-2 border-ink px-4 py-3">
+              <PenLine className="size-5" aria-hidden />
+              <h2 className="font-display text-xl font-bold">{current.data.title}</h2>
+              <Badge tone="brand">{TYPE_LABEL[current.data.diagram_type]}</Badge>
+            </header>
+            <WhiteboardWorkspace diagram={current.data} />
+          </>
+        )}
+      </Card>
     </div>
   )
 }

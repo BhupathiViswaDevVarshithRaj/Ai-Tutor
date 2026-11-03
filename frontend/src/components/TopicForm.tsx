@@ -15,6 +15,8 @@ type TopicFormProps = {
   /** Live form: called with the values on submit. */
   onSubmit?: (values: TopicValues) => void
   pending?: boolean
+  /** Shown next to the button while `pending`. */
+  pendingText?: string
   error?: string
   /** Not wired yet: submit stays disabled and names the phase that wires it. */
   phase?: number
@@ -28,6 +30,7 @@ export function TopicForm({
   submitLabel,
   onSubmit,
   pending = false,
+  pendingText = 'Building your lesson plan…',
   error,
   phase,
   topicLabel = 'What do you want to learn?',
@@ -97,7 +100,7 @@ export function TopicForm({
           {submitLabel}
         </Button>
         {!onSubmit && phase && <span className="text-sm text-muted">Available in Phase {phase}</span>}
-        {pending && <span className="text-sm text-muted">Building your lesson plan…</span>}
+        {pending && <span className="text-sm text-muted">{pendingText}</span>}
       </div>
     </form>
   )

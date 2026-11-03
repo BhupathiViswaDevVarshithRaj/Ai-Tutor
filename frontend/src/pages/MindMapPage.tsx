@@ -67,6 +67,7 @@ export default function MindMapPage() {
                 placeholder="e.g. Machine learning"
                 onSubmit={(values) => create.mutate(values)}
                 pending={create.isPending}
+                pendingText="Drawing your mind map…"
                 error={create.isError ? describeError(create.error) : undefined}
               />
             </CardBody>

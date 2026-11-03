@@ -126,10 +126,9 @@ describe('AppRoutes (signed in)', () => {
 
   it('keeps unbuilt feature actions disabled and labelled with their phase', async () => {
     signedInApi()
-    renderWithProviders(<AppRoutes />, { route: '/app/whiteboard' })
-    const tools = await screen.findByRole('toolbar', { name: 'Drawing tools' })
-    expect(within(tools).getByRole('button', { name: 'Pen' })).toBeDisabled()
-    expect(screen.getByRole('note')).toHaveTextContent('Coming in Phase 11')
+    renderWithProviders(<AppRoutes />, { route: '/app/videos' })
+    expect(await screen.findByRole('button', { name: 'Generate video' })).toBeDisabled()
+    expect(screen.getByRole('note')).toHaveTextContent('Coming in Phase 12')
   })
 
   it('top bar language switch saves to the account and updates the page', async () => {

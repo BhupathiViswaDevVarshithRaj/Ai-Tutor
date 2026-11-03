@@ -113,7 +113,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 9.11 Tests: backend 169 (44 new), frontend 135 (11 new); real Chromium run through the dev servers covering every skill, 1440 px light / 390 px dark
 - [ ] Deferred: subtitle languages → Phase 12 (needs video); running the evaluation against the real model → once `ANTHROPIC_API_KEY` is set
 
-## Phase 10 — Mind maps ✅ (branch `phase-10-mind-maps`, awaiting your approval)
+## Phase 10 — Mind maps ✅ (merged to `main`)
 - [x] 10.1 Migration 0005: `mind_maps` (graph, learner layout, version); reversible, `alembic check` clean
 - [x] 10.2 Schema: a tree of nodes (topic / main idea / sub-concept / example / definition, with a one-line explanation) plus up to 12 labelled cross-links
 - [x] 10.3 Generation with structured output, in the learner's language and level; model output repaired (ids renumbered, orphans attached, cycles and over-deep branches dropped, links checked); maps from a lesson follow its plan
@@ -124,5 +124,17 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 10.8 Lesson page "Make a mind map" / "Open mind map"; Mind Maps no longer marked "soon"
 - [x] 10.9 Tests: backend 193 (24 new), frontend 148 (13 new); real Chromium run: generate → rename → AI expand → fold + drag → reload keeps layout → all four exports downloaded; 1440 px light / 390 px dark
 
-## Phases 11–15
+## Phase 11 — Drawing and diagrams ✅ (branch `phase-11-diagrams`, awaiting your approval)
+- [x] 11.1 Migration 0006: `diagrams` (type, validated spec, freehand strokes); reversible incl. the new enum, `alembic check` clean
+- [x] 11.2 Diagram description: flowchart, block, cycle (process), timeline, function graph; elements, connectors, plotted functions and points, and ordered reveal steps; no coordinates from the model
+- [x] 11.3 Safe formulas: one whitelisted grammar (numbers, x, + − × ÷ ^, sin cos tan sqrt abs log ln exp, pi, e), checked in Python and parsed/evaluated in TypeScript; never `eval`; both sides tested against the same accept/reject list
+- [x] 11.4 Generation with structured output; model output repaired (bad items dropped, connector ids remapped, every item revealed in some step, unreadable formulas dropped, ranges fixed)
+- [x] 11.5 Layout in the app: layered flowcharts (loops detected and routed around), left-to-right block diagrams, circular cycles, alternating timelines, plotted graphs with nice ticks and asymptote breaks
+- [x] 11.6 Step playback: play/pause (auto-advance), previous/next, restart, show all, step list, step explanation read aloud
+- [x] 11.7 Freehand layer: pen, highlighter, eraser, five inks, undo/redo, clear; saved to the account (size-limited); blank sketch boards
+- [x] 11.8 Export: PNG (2×), SVG, JSON; the finished diagram plus the drawing
+- [x] 11.9 Lesson page "Draw a diagram" / "Open diagram"; Whiteboard no longer marked "soon"
+- [x] 11.10 Tests: backend 238 (45 new), frontend 193 (45 new); real Chromium run of all four diagram types, drawing + reload, and all exports; 1440 px light / 390 px dark
+
+## Phases 12–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

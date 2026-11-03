@@ -63,7 +63,6 @@ const WHITEBOARD: NavItem = {
   icon: PenTool,
   accent: 'sky',
   description: 'Step-by-step diagrams, graphs and sketches.',
-  phase: 11,
 }
 const VIDEOS: NavItem = {
   to: '/app/videos',

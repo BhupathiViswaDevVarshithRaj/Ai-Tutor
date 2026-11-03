@@ -260,3 +260,56 @@ export type MindMapSummary = {
   node_count: number
   updated_at: string
 }
+
+// --- Whiteboard diagrams (Phase 11) ---
+
+export type DiagramType = 'flowchart' | 'block' | 'timeline' | 'graph_fn' | 'process' | 'freehand'
+export type DiagramElement = {
+  id: string
+  kind: 'box' | 'decision' | 'start_end' | 'note' | 'event'
+  label: string
+  tag: string
+  detail: string
+}
+export type DiagramConnector = { id: string; source: string; target: string; label: string }
+export type PlotFunction = { id: string; expression: string; label: string }
+export type PlotPoint = { id: string; x: number; y: number; label: string }
+export type DiagramStep = { title: string; explanation: string; show: string[] }
+export type DiagramSpec = {
+  title: string
+  diagram_type: Exclude<DiagramType, 'freehand'>
+  elements: DiagramElement[]
+  connectors: DiagramConnector[]
+  functions: PlotFunction[]
+  points: PlotPoint[]
+  x_min: number
+  x_max: number
+  x_label: string
+  y_label: string
+  steps: DiagramStep[]
+}
+export type Stroke = { tool: 'pen' | 'highlighter'; color: string; width: number; points: [number, number][] }
+
+export type Diagram = {
+  id: string
+  lesson_id: string | null
+  title: string
+  topic: string | null
+  language: LanguageCode
+  level: Level
+  diagram_type: DiagramType
+  spec: DiagramSpec | null
+  strokes: Stroke[]
+  created_at: string
+  updated_at: string
+}
+
+export type DiagramSummary = {
+  id: string
+  lesson_id: string | null
+  title: string
+  diagram_type: DiagramType
+  step_count: number
+  stroke_count: number
+  updated_at: string
+}

@@ -27,6 +27,7 @@ from app.ai.llm.base import (
     TextDelta,
     Usage,
 )
+from app.ai.mindmap import Branch, BranchNode, MapLink, MapNode, MindMapGraph
 from app.ai.schemas import LessonPlan, LessonSummary, PlanModule, PlanSection
 
 MOCK_MODEL = "mock-tutor"
@@ -133,6 +134,19 @@ class MockLLMProvider:
                 key_points=[f"You started learning {topic}."],
                 next_steps=["Add an ANTHROPIC_API_KEY to get real summaries."],
             )
+        elif schema is MindMapGraph:
+            value = _mock_mind_map(topic)
+        elif schema is Branch:
+            # Number new nodes after the existing ones so repeated expansions add new ideas.
+            start = prompt.count("\n- ") + 1
+            value = Branch(
+                nodes=[
+                    BranchNode(
+                        label=f"[mock] idea {start + i}", kind="concept", detail="Mock detail."
+                    )
+                    for i in range(3)
+                ]
+            )
         elif (course := _mock_course_content(schema, prompt, topic)) is not None:
             value = course
         else:
@@ -220,3 +234,30 @@ def _mock_course_content(schema: type, prompt: str, topic: str):
             ],
         )
     return None
+
+
+def _mock_mind_map(topic: str) -> MindMapGraph:
+    """A small, clearly labelled map: the topic, three main ideas, and a few leaves."""
+    nodes = [MapNode(id="root", parent="", label=topic, kind="topic", detail="Mock central topic.")]
+    leaf_kinds = ("concept", "example", "definition")
+    for i in range(1, 4):
+        nodes.append(
+            MapNode(
+                id=f"i{i}", parent="root", label=f"[mock] Main idea {i}", kind="idea", detail=""
+            )
+        )
+        for j, kind in enumerate(leaf_kinds[: 2 if i < 3 else 3], start=1):
+            nodes.append(
+                MapNode(
+                    id=f"i{i}-{j}",
+                    parent=f"i{i}",
+                    label=f"[mock] {kind} {i}.{j}",
+                    kind=kind,
+                    detail=f"Mock {kind}. Add an ANTHROPIC_API_KEY for a real map.",
+                )
+            )
+    return MindMapGraph(
+        title=f"{topic} (mock map)",
+        nodes=nodes,
+        links=[MapLink(source="i1-1", target="i2-1", relation="related to")],
+    )

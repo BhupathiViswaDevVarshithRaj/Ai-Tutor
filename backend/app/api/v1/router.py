@@ -6,6 +6,7 @@ from app.api.v1 import (
     health,
     languages,
     lessons,
+    mindmaps,
     speech,
     tutor,
     users,
@@ -22,3 +23,4 @@ api_router.include_router(tutor.router)
 api_router.include_router(speech.router)
 api_router.include_router(voice.router)
 api_router.include_router(languages.router)
+api_router.include_router(mindmaps.router)

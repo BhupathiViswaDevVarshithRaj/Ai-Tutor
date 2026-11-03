@@ -141,3 +141,55 @@ def summary_request(*, topic: str, language: str, transcript: str) -> str:
         f"Topic: {topic}\nLanguage: {language_name(language)}\n\n"
         f"Conversation transcript:\n{transcript}\n\nSummarise this session."
     )
+
+
+MINDMAP_SYSTEM = (
+    "You build mind maps for a learning app. A mind map is a tree: one central topic node "
+    "(parent ''), 3-6 main ideas under it (kind 'idea'), and under those the sub-concepts "
+    "(kind 'concept'), examples (kind 'example') and definitions of key terms (kind "
+    "'definition') that a learner at the stated level needs. Aim for 20-40 nodes, at most 4 "
+    "levels deep. Labels are short (2-6 words); `detail` is one plain sentence explaining the "
+    "node. Use short unique ids and set each node's `parent` to its parent's id. Optionally "
+    "add up to 6 cross-links between nodes on different branches that are genuinely related, "
+    "with a 1-3 word relation (e.g. 'causes', 'part of'). Write labels and details in the "
+    "requested language; technical terms may keep the English term in parentheses."
+)
+
+MINDMAP_EXPAND_SYSTEM = (
+    "You extend one branch of a learner's mind map. Given the map and the node to expand, add "
+    "3-5 new child nodes that go one step deeper (sub-concepts, examples or definitions), "
+    "without repeating anything already in the map. Labels are short (2-6 words); `detail` is "
+    "one plain sentence. Write in the requested language and at the stated level."
+)
+
+
+def mindmap_request(
+    *, topic: str, level: LearningLevel, language: str, plan: dict | None = None
+) -> str:
+    lines = [f"Topic: {topic}", f"Level: {level.value}", f"Language: {language_name(language)}"]
+    if plan:
+        # A map for a lesson follows the lesson's plan so the two match.
+        lines.append(
+            "Base the main ideas on this lesson plan:\n"
+            + json.dumps(plan, ensure_ascii=False, sort_keys=True)
+        )
+    lines.append("Create the mind map.")
+    return "\n".join(lines)
+
+
+def expand_request(*, graph: dict, node_id: str, level: LearningLevel, language: str) -> str:
+    by_id = {n["id"]: n for n in graph["nodes"]}
+    node, path = by_id[node_id], []
+    current = node
+    while current:
+        path.append(current["label"])
+        current = by_id.get(current["parent"])
+    outline = "\n".join(
+        f"- {n['label']}" + (f" (under {by_id[n['parent']]['label']})" if n["parent"] else "")
+        for n in graph["nodes"]
+    )
+    return (
+        f"Topic: {graph['title']}\nLevel: {level.value}\nLanguage: {language_name(language)}\n"
+        f"Expand this node: {' > '.join(reversed(path))}\n"
+        f"Node detail: {node['detail']}\n\nThe whole map so far:\n{outline}"
+    )

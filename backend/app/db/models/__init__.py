@@ -3,12 +3,14 @@
 from app.db.models.languages import LanguageEnrollment, PracticeSession, VocabItem
 from app.db.models.learning import Conversation, Lesson, Message
 from app.db.models.user import PasswordResetToken, RefreshToken, User, UserPreferences
+from app.db.models.visual import MindMap
 
 __all__ = [
     "Conversation",
     "LanguageEnrollment",
     "Lesson",
     "Message",
+    "MindMap",
     "PracticeSession",
     "PasswordResetToken",
     "RefreshToken",

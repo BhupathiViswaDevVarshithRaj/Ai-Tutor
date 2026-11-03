@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     auth,
     conversations,
+    diagrams,
     health,
     languages,
     lessons,
@@ -24,3 +25,4 @@ api_router.include_router(speech.router)
 api_router.include_router(voice.router)
 api_router.include_router(languages.router)
 api_router.include_router(mindmaps.router)
+api_router.include_router(diagrams.router)

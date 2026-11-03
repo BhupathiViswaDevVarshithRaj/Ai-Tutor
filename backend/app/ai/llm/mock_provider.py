@@ -16,6 +16,7 @@ from app.ai.course_schemas import (
     WritingFeedback,
     WritingTask,
 )
+from app.ai.diagram import Connector, DiagramSpec, Element, PlotFunction, PlotPoint, Step
 from app.ai.llm.base import (
     ChatMessage,
     LLMError,
@@ -134,6 +135,8 @@ class MockLLMProvider:
                 key_points=[f"You started learning {topic}."],
                 next_steps=["Add an ANTHROPIC_API_KEY to get real summaries."],
             )
+        elif schema is DiagramSpec:
+            value = _mock_diagram(topic, _field(prompt, "Diagram type", "your choice"))
         elif schema is MindMapGraph:
             value = _mock_mind_map(topic)
         elif schema is Branch:
@@ -260,4 +263,128 @@ def _mock_mind_map(topic: str) -> MindMapGraph:
         title=f"{topic} (mock map)",
         nodes=nodes,
         links=[MapLink(source="i1-1", target="i2-1", relation="related to")],
+    )
+
+
+def _mock_diagram(topic: str, requested: str) -> DiagramSpec:
+    """A labelled example of the requested type (a flowchart when the model would choose)."""
+    kind = (
+        requested
+        if requested in ("flowchart", "block", "timeline", "graph_fn", "process")
+        else "flowchart"
+    )
+    empty = {
+        "functions": [],
+        "points": [],
+        "x_min": 0.0,
+        "x_max": 1.0,
+        "x_label": "",
+        "y_label": "",
+    }
+    title = f"{topic} (mock diagram)"
+
+    def el(id_: str, label: str, kind_: str = "box", tag: str = "") -> Element:
+        return Element(id=id_, kind=kind_, label=label, tag=tag, detail=f"Mock detail for {label}.")
+
+    if kind == "graph_fn":
+        return DiagramSpec(
+            title=title,
+            diagram_type="graph_fn",
+            elements=[],
+            connectors=[],
+            functions=[PlotFunction(id="f", expression="x^2 - 4", label="y = x² − 4")],
+            points=[
+                PlotPoint(id="r1", x=-2, y=0, label="root x = −2"),
+                PlotPoint(id="r2", x=2, y=0, label="root x = 2"),
+                PlotPoint(id="v", x=0, y=-4, label="vertex"),
+            ],
+            x_min=-4,
+            x_max=4,
+            x_label="x",
+            y_label="y",
+            steps=[
+                Step(
+                    title="[mock] The curve", explanation="A parabola opening upwards.", show=["f"]
+                ),
+                Step(
+                    title="[mock] Roots",
+                    explanation="It crosses the x-axis twice.",
+                    show=["r1", "r2"],
+                ),
+                Step(title="[mock] Vertex", explanation="The lowest point.", show=["v"]),
+            ],
+        )
+    if kind == "timeline":
+        events = [
+            el(f"e{i}", f"[mock] Event {i}", "event", tag=str(1900 + 25 * i)) for i in range(1, 5)
+        ]
+        return DiagramSpec(
+            title=title,
+            diagram_type="timeline",
+            elements=events,
+            connectors=[],
+            steps=[
+                Step(title="[mock] Early", explanation="The first events.", show=["e1", "e2"]),
+                Step(title="[mock] Later", explanation="What followed.", show=["e3", "e4"]),
+            ],
+            **empty,
+        )
+    if kind == "process":
+        stages = [el(f"s{i}", f"[mock] Stage {i}") for i in range(1, 5)]
+        links = [
+            Connector(id=f"l{i}", source=f"s{i}", target=f"s{i % 4 + 1}", label="")
+            for i in range(1, 5)
+        ]
+        return DiagramSpec(
+            title=title,
+            diagram_type="process",
+            elements=stages,
+            connectors=links,
+            steps=[
+                Step(
+                    title="[mock] Start the cycle",
+                    explanation="The first two stages.",
+                    show=["s1", "l1", "s2"],
+                ),
+                Step(
+                    title="[mock] Complete it",
+                    explanation="Round and back again.",
+                    show=["l2", "s3", "l3", "s4", "l4"],
+                ),
+            ],
+            **empty,
+        )
+    elements = [
+        el("start", "[mock] Start", "start_end"),
+        el("a", "[mock] Do the first thing"),
+        el("q", "[mock] Did it work?", "decision"),
+        el("b", "[mock] Try again"),
+        el("end", "[mock] Done", "start_end"),
+    ]
+    connectors = [
+        Connector(id="c1", source="start", target="a", label=""),
+        Connector(id="c2", source="a", target="q", label=""),
+        Connector(id="c3", source="q", target="end", label="yes"),
+        Connector(id="c4", source="q", target="b", label="no"),
+        Connector(id="c5", source="b", target="a", label=""),
+    ]
+    return DiagramSpec(
+        title=title,
+        diagram_type="block" if kind == "block" else "flowchart",
+        elements=elements,
+        connectors=connectors,
+        steps=[
+            Step(
+                title="[mock] Begin",
+                explanation="Start and do the first thing.",
+                show=["start", "c1", "a"],
+            ),
+            Step(title="[mock] Check", explanation="Ask whether it worked.", show=["c2", "q"]),
+            Step(
+                title="[mock] Finish or retry",
+                explanation="Yes ends; no loops back.",
+                show=["c3", "end", "c4", "b", "c5"],
+            ),
+        ],
+        **empty,
     )

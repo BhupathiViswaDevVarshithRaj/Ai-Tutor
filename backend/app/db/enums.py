@@ -53,3 +53,12 @@ class PracticeSkill(StrEnum):
     WRITING = "writing"
     SPEAKING = "speaking"
     CONVERSATION = "conversation"
+
+
+class DiagramType(StrEnum):
+    FLOWCHART = "flowchart"
+    BLOCK = "block"
+    TIMELINE = "timeline"
+    GRAPH_FN = "graph_fn"
+    PROCESS = "process"
+    FREEHAND = "freehand"  # a blank sketch board with no generated diagram

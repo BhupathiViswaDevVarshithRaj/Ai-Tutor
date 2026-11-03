@@ -193,3 +193,40 @@ def expand_request(*, graph: dict, node_id: str, level: LearningLevel, language:
         f"Expand this node: {' > '.join(reversed(path))}\n"
         f"Node detail: {node['detail']}\n\nThe whole map so far:\n{outline}"
     )
+
+
+DIAGRAM_SYSTEM = (
+    "You draw teaching diagrams on a whiteboard for a learning app, revealed step by step "
+    "like a teacher drawing at the board. Choose the clearest type unless one is requested:\n"
+    "- flowchart: a procedure or algorithm. Elements: 'start_end' for start/end, 'box' for "
+    "actions, 'decision' for yes/no questions (label its outgoing connectors 'yes'/'no').\n"
+    "- block: parts of a system and how they connect (kind 'box'; connectors show flow).\n"
+    "- process: a cycle that repeats (e.g. the water cycle): 3-8 'box' elements in order, "
+    "each connected to the next and the last back to the first.\n"
+    "- timeline: dated events in chronological order (kind 'event'; put the date in `tag`).\n"
+    "- graph_fn: a mathematical function. Give 1-3 formulas in x using only numbers, x, "
+    "+ - * / ^, parentheses, sin cos tan sqrt abs log ln exp, pi and e; always write "
+    "multiplication explicitly (2*x, not 2x). Set x_min/x_max to show the interesting part, "
+    "and mark key points (roots, maxima, intercepts) in `points`.\n"
+    "Use 4-14 elements (graphs: no elements or connectors). Labels are short (1-6 words); "
+    "`detail` is one plain sentence. Use short unique ids for everything.\n"
+    "Then write 3-7 `steps`, in teaching order: each has a short title, a one- or two-sentence "
+    "explanation, and `show`, the ids of the elements, connectors, functions or points that "
+    "appear in that step. Every item should appear in exactly one step. Write all text in the "
+    "requested language, at the stated level. Leave unused fields empty (x range 0 to 1)."
+)
+
+
+def diagram_request(
+    *, topic: str, level: LearningLevel, language: str, diagram_type: str, plan: dict | None = None
+) -> str:
+    lines = [f"Topic: {topic}", f"Level: {level.value}", f"Language: {language_name(language)}"]
+    lines.append(
+        f"Diagram type: {diagram_type}" if diagram_type != "auto" else "Diagram type: your choice"
+    )
+    if plan:
+        lines.append(
+            "It is for this lesson:\n" + json.dumps(plan, ensure_ascii=False, sort_keys=True)
+        )
+    lines.append("Draw the diagram.")
+    return "\n".join(lines)

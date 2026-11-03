@@ -20,7 +20,7 @@ from app.ai.prompts import (
 from app.ai.schemas import LessonPlan, LessonSummary, validate_plan, validate_summary
 from app.core.config import get_settings
 from app.core.errors import AppError
-from app.db.enums import MessageRole
+from app.db.enums import ConversationMode, MessageRole
 from app.db.models import Conversation, Lesson, Message, User
 from app.db.session import session_scope
 from app.schemas.learning import MessageOut
@@ -134,6 +134,7 @@ async def prepare_turn(
         interests=user.preferences.interests,
         topic=lesson.topic if lesson else None,
         plan=lesson.plan if lesson else None,
+        spoken=conversation.mode == ConversationMode.VOICE,
     )
     return PreparedTurn(
         conversation_id=conversation.id,
@@ -155,7 +156,17 @@ def _message_json(message: Message) -> dict:
 
 async def stream_turn(llm: LLMProvider, turn: PreparedTurn) -> AsyncIterator[str]:
     """Server-sent events: start → delta* → done | error. The reply is saved when complete."""
-    yield sse("start", {"user_message": _message_json(turn.user_message), "mock": llm.is_mock})
+    async for event, data in turn_events(llm, turn):
+        yield sse(event, data)
+
+
+async def turn_events(llm: LLMProvider, turn: PreparedTurn) -> AsyncIterator[tuple[str, dict]]:
+    """Events of one tutor turn: start → delta* → done | error (SSE and voice share this).
+
+    The reply is saved only when complete; if the consumer stops early (e.g. the learner
+    interrupts), nothing is saved.
+    """
+    yield "start", {"user_message": _message_json(turn.user_message), "mock": llm.is_mock}
 
     parts: list[str] = []
     done: StreamDone | None = None
@@ -163,19 +174,17 @@ async def stream_turn(llm: LLMProvider, turn: PreparedTurn) -> AsyncIterator[str
         async for event in llm.stream_chat(system=turn.system, messages=turn.history):
             if isinstance(event, TextDelta):
                 parts.append(event.text)
-                yield sse("delta", {"text": event.text})
+                yield "delta", {"text": event.text}
             else:
                 done = event
     except LLMError as exc:
         # A partial reply (e.g. declined mid-stream) is discarded, not saved.
-        yield sse("error", {"message": exc.user_message, "retryable": exc.retryable})
+        yield "error", {"message": exc.user_message, "retryable": exc.retryable}
         return
 
     text = "".join(parts).strip()
     if done is None or not text:
-        yield sse(
-            "error", {"message": "The tutor didn't reply. Please try again.", "retryable": True}
-        )
+        yield "error", {"message": "The tutor didn't reply. Please try again.", "retryable": True}
         return
 
     async with session_scope() as session:
@@ -201,9 +210,7 @@ async def stream_turn(llm: LLMProvider, turn: PreparedTurn) -> AsyncIterator[str
         )
         await session.commit()
         await session.refresh(reply)
-    yield sse(
-        "done", {"message": _message_json(reply), "truncated": done.stop_reason == "max_tokens"}
-    )
+    yield "done", {"message": _message_json(reply), "truncated": done.stop_reason == "max_tokens"}
 
 
 def _summary_markdown(summary: LessonSummary) -> str:

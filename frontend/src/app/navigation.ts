@@ -50,7 +50,6 @@ const VOICE: NavItem = {
   icon: Mic,
   accent: 'tangerine',
   description: 'Talk to your tutor and hear spoken explanations.',
-  phase: 8,
 }
 const MIND_MAPS: NavItem = {
   to: '/app/mind-maps',

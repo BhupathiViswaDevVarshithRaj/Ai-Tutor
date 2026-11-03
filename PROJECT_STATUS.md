@@ -1,7 +1,7 @@
 # Project Status
 
-**Current phase:** 7 — Text-to-speech UI and pipeline ✅ complete on branch `phase-7-tts`. ⏸ Next is Phase 8 (voice tutor), a major checkpoint.
-`main` (also on GitHub): Phases 0–6 + UI redesign (`1070a8f`).
+**Current phase:** 8 — Voice tutor ✅ complete on branch `phase-8-voice-tutor`. ⏸ **Checkpoint: awaiting your approval** before Phase 9 (multilingual + language courses).
+`main` (also on GitHub): Phases 0–7 + UI redesign (`edf0d30`).
 **Last updated:** 2026-11-03
 
 ## Completed
@@ -25,16 +25,19 @@
 
 - **Phase 7 (text-to-speech UI):** read-aloud for every tutor reply with play/pause/resume/stop, progress and live speed; long replies read in sentence pieces with prefetching; voice and speed saved to the account; read-aloud disabled with a reason when unsupported; working Playback card and transcript read-back on Voice Learning; live provider info in Settings.
 
+- **Phase 8 (voice tutor):** live spoken conversations over a WebSocket: speak (or type), the transcript is sent or held for correction, the reply streams as text and is spoken sentence by sentence while it is still being written; interrupt or ask something new at any time; automatic reconnection with history; spoken reply style; Voice Learning rebuilt around conversations.
+
 ## Test results (actually executed, 2026-11-03)
 | Suite | Result |
 |---|---|
-| Backend (`pytest`, real Postgres + Redis test DB) | 107 passed |
+| Backend (`pytest`, real Postgres + Redis test DB) | 125 passed (incl. 15 WebSocket tests) |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 17 files, 117 tests passed (two consecutive full runs) |
+| Frontend (`vitest run`) | 18 files, 124 tests passed (three consecutive full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |
 | Live speech round-trip via curl through the Vite proxy (mock) | `/speech/info` 200 → Hindi text synthesized to a 2.7 s WAV → same WAV transcribed (duration 2714 ms, labelled mock transcript) |
+| Real-browser voice tutor (Playwright, Chromium fake microphone, through the Vite proxy) | New conversation → Live → spoken question transcribed and auto-sent → reply streamed with 7 audio sentences → Stop tutor (interrupted; unfinished reply not saved) → review mode: transcript corrected and sent → answered → page reload reconnects with the same history. 1440 px light, 390 px dark; no page errors |
 | Real-browser read-aloud (Playwright, Chromium) | Voice and speed saved → sample synthesized (WAV, mock-calm) and played to the end → settings kept after reload. Lesson reply synthesized and played with progress, then paused, resumed and stopped. 1440 px light, 390 px dark; no page errors |
 | Real-browser voice input (Playwright, Chromium fake microphone) | Voice Learning: record 2 s → real WebM accepted (200) → transcript shown → corrected. Lesson: dictate → text in composer → sent with `input_mode: "voice"` → reply streamed. 1440 px light, 390 px dark; no page errors |
 | Voice Learning page (Playwright) | 1440 px light + 390 px dark: no page errors, no overflow |
@@ -47,13 +50,15 @@
 - No email-address change or account deletion yet.
 - Without SMTP settings, password-reset emails are written to the backend log (dev only).
 - Speech is mock-only: transcripts are placeholders and read-aloud plays tones. Real microphone audio is recorded and uploaded, but not recognised until Gnani is integrated.
-- Voice Learning transcripts are not saved yet (Phase 8). Real speech needs Gnani's official docs + key.
+- A voice session stays authorised until it disconnects (the token is checked at connect and each reconnect); per-sentence speech inside a turn is not separately rate-limited (turns are).
+- Speech recognition is per recording (no streaming recognition while you talk); the mock returns placeholder text.
+- The mock AI writes Markdown even in voice conversations; the spoken style applies to the real model. Real speech needs Gnani's official docs + key.
 - The dev server's auto-reload did not pick up newly created router files on Windows; restart uvicorn after adding modules.
 - Playwright is used for visual screenshots; the automated E2E suite is still planned for Phase 14.
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
-- Phase 8 ⏸: voice tutor — a live spoken conversation (WebSocket): speak → transcript → streamed tutor reply → read aloud, with interruption, reconnection and saved history.
+- Phase 9: multilingual + language courses — language capability matrix, per-language evaluation set, and the world-language courses (DE, FR, ES, JA, KO, ZH, IT, PT; CEFR A1–C2) with vocabulary, grammar, speaking, listening, reading/writing and conversation practice.
 
 ## Blockers / pending inputs
 - `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).

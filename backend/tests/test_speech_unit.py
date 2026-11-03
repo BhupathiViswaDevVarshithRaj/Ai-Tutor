@@ -163,3 +163,40 @@ def test_factory_selects_gnani_placeholders(fresh_factory, monkeypatch):
     assert isinstance(get_stt(), GnaniSTTProvider)
     assert isinstance(get_tts(), GnaniTTSProvider)
     assert get_stt().unavailable_reason is not None
+
+
+# --- sentence splitting for spoken replies ----------------------------------------
+
+
+def test_sentence_buffer_releases_complete_sentences_while_streaming():
+    from app.ai.speech.sentences import SentenceBuffer
+
+    buffer = SentenceBuffer(min_chars=10)
+    assert buffer.feed("Plants make food from light") == []
+    assert buffer.feed(".") == []  # waits for the space after the stop (could be "3.5")
+    assert buffer.feed(" They need water too. And air") == [
+        "Plants make food from light.",
+        "They need water too.",
+    ]
+    assert buffer.flush() == ["And air"]
+
+
+def test_sentence_buffer_merges_short_sentences_and_strips_markdown():
+    from app.ai.speech.sentences import SentenceBuffer
+
+    buffer = SentenceBuffer(min_chars=15)
+    pieces = buffer.feed("Yes. **Exactly** right! Now `x` grows.\n- next point ")
+    assert pieces == ["Yes. Exactly right!"]
+    # "Now x grows." is under the minimum, so it waits and merges with the list item.
+    assert buffer.flush() == ["Now x grows. next point"]
+
+
+def test_sentence_buffer_handles_the_danda_and_long_runs():
+    from app.ai.speech.sentences import SentenceBuffer
+
+    buffer = SentenceBuffer(min_chars=5, max_chars=20)
+    assert buffer.feed("पौधे भोजन बनाते हैं। फिर") == ["पौधे भोजन बनाते हैं।"]
+    long_run = " word" * 10
+    pieces = buffer.feed(long_run) + buffer.flush()
+    assert all(len(p) <= 20 for p in pieces)
+    assert " ".join(pieces).split() == ["फिर"] + ["word"] * 10

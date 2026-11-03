@@ -107,6 +107,7 @@ export function signedInApi(extra: Record<string, Handler> = {}, user: User = TE
     'POST /auth/logout': () => new Response(null, { status: 204 }),
     'GET /health/ready': healthy,
     'GET /lessons': () => jsonResponse(EMPTY_PAGE),
+    'GET /conversations': () => jsonResponse(EMPTY_PAGE),
     'GET /tutor/info': () =>
       jsonResponse({ provider: 'mock', is_mock: true, tutor_model: 'mock-tutor', structured_model: 'mock-tutor' }),
     'GET /speech/info': () => jsonResponse(MOCK_SPEECH_INFO),
@@ -230,4 +231,74 @@ export function audioResponse(durationMs = 1000, voice = 'mock-bright'): Respons
       'X-Speech-Mock': 'true',
     },
   })
+}
+
+/**
+ * Fake WebSocket for jsdom: each `new WebSocket()` is recorded; the test plays the server with
+ * `open()`, `emit()` (JSON), `emitBinary()` and `serverClose()`, and reads what the client sent.
+ */
+export class FakeWebSocket {
+  static readonly CONNECTING = 0
+  static readonly OPEN = 1
+  static readonly CLOSING = 2
+  static readonly CLOSED = 3
+  static instances: FakeWebSocket[] = []
+
+  readonly url: string
+  readyState = FakeWebSocket.CONNECTING
+  binaryType = 'blob'
+  sent: (string | Blob)[] = []
+  onopen: (() => void) | null = null
+  onmessage: ((event: { data: string | Blob }) => void) | null = null
+  onclose: ((event: { code: number }) => void) | null = null
+
+  constructor(url: string) {
+    this.url = url
+    FakeWebSocket.instances.push(this)
+  }
+
+  send(data: string | Blob) {
+    this.sent.push(data)
+  }
+
+  close(code = 1000) {
+    if (this.readyState === FakeWebSocket.CLOSED) return
+    this.readyState = FakeWebSocket.CLOSED
+    this.onclose?.({ code })
+  }
+
+  /** Parsed JSON frames the client sent (binary frames are skipped). */
+  get json(): Record<string, unknown>[] {
+    return this.sent.filter((d): d is string => typeof d === 'string').map((d) => JSON.parse(d))
+  }
+
+  open() {
+    this.readyState = FakeWebSocket.OPEN
+    this.onopen?.()
+  }
+
+  emit(message: unknown) {
+    this.onmessage?.({ data: JSON.stringify(message) })
+  }
+
+  emitBinary(blob: Blob) {
+    this.onmessage?.({ data: blob })
+  }
+
+  serverClose(code: number) {
+    this.readyState = FakeWebSocket.CLOSED
+    this.onclose?.({ code })
+  }
+
+  static latest(): FakeWebSocket {
+    const ws = FakeWebSocket.instances.at(-1)
+    if (!ws) throw new Error('No WebSocket was opened')
+    return ws
+  }
+}
+
+export function installFakeWebSocket() {
+  FakeWebSocket.instances = []
+  vi.stubGlobal('WebSocket', FakeWebSocket)
+  return FakeWebSocket
 }

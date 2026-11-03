@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.errors import NotFound
-from app.db.enums import LessonStatus, MessageRole
+from app.db.enums import ConversationMode, LessonStatus, MessageRole
 from app.db.models import Conversation, Lesson, Message
 from app.schemas.learning import (
     ConversationCreate,
@@ -85,10 +85,13 @@ async def list_conversations(
     lesson_id: uuid.UUID | None,
     limit: int,
     offset: int,
+    mode: ConversationMode | None = None,
 ) -> tuple[list[Conversation], int]:
     filters = [Conversation.user_id == user_id]
     if lesson_id is not None:
         filters.append(Conversation.lesson_id == lesson_id)
+    if mode is not None:
+        filters.append(Conversation.mode == mode)
     total = await session.scalar(select(func.count()).select_from(Conversation).where(*filters))
     rows = await session.scalars(
         select(Conversation)

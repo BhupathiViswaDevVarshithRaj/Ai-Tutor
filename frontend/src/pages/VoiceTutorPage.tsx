@@ -1,25 +1,26 @@
-import { Mic, Pause, Play, Square, Volume2, X } from 'lucide-react'
+import { Pause, Volume2 } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 import { usePreferences } from '../app/preferences-context'
 import { PageHeader } from '../components/PageHeader'
-import { PhaseNotice } from '../components/PhaseNotice'
-import { Headphones, SpeechWaves } from '../components/illustrations/Audio'
+import { Headphones } from '../components/illustrations/Audio'
+import { RobotTutor } from '../components/illustrations/Robot'
 import { Float } from '../components/motion/Motion'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Alert, EmptyState } from '../components/ui/feedback'
 import { Field, Select } from '../components/ui/form'
 import { SpeechStatus } from '../features/speech/SpeechStatus'
-import { TranscriptList } from '../features/speech/TranscriptList'
-import type { TranscriptEntry } from '../features/speech/TranscriptList'
-import { useDictation } from '../features/speech/useDictation'
-import { formatClock } from '../features/speech/useRecorder'
 import { useSpeechInfo } from '../features/speech/useSpeechInfo'
 import { useSpeechPlayer } from '../features/speech/useSpeechPlayer'
 import { SPEECH_SPEEDS, useVoiceSettings } from '../features/speech/useVoiceSettings'
+import { VoiceConversations } from '../features/voice/VoiceConversations'
+import { VoiceSession } from '../features/voice/VoiceSession'
+import { useVoiceTutor } from '../features/voice/useVoiceTutor'
 import type { LanguageCode } from '../lib/learning'
 import { languageLabel } from '../lib/learning'
+import { readStorage, writeStorage } from '../lib/storage'
 
 /** A short line in each tutor language, for trying voices and speeds. */
 const SAMPLE_LINES: Record<LanguageCode, string> = {
@@ -31,95 +32,75 @@ const SAMPLE_LINES: Record<LanguageCode, string> = {
   bn: 'নমস্কার! আমি তোমার AI টিউটর। আজ কি আমরা নতুন কিছু শিখব?',
 }
 
-const PLAY_LABEL = { idle: 'Listen', loading: 'Loading', playing: 'Pause', paused: 'Resume' } as const
+const AUTO_SEND_KEY = 'aitutor.voice.autoSend'
+const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean'
 
 export default function VoiceTutorPage() {
-  const { language } = usePreferences()
+  const { language, level } = usePreferences()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const conversationId = searchParams.get('c')
+  const [autoSend, setAutoSend] = useState(() => readStorage(AUTO_SEND_KEY, true, isBoolean))
+  const voice = useVoiceTutor(conversationId, { autoSend })
+
   const voices = useSpeechInfo().data?.tts.voices ?? []
   const voiceSettings = useVoiceSettings()
   const player = useSpeechPlayer()
   const readAloudBlocked = player.unavailableReason(language)
-  const statusOf = (key: string) => (player.key === key ? player.status : 'idle')
-  const sampleStatus = statusOf('sample')
-  const [entries, setEntries] = useState<TranscriptEntry[]>([])
-  const dictation = useDictation(language, (transcript, recorded) => {
-    setEntries((current) => [
-      {
-        id: crypto.randomUUID(),
-        text: transcript.text,
-        original: transcript.text,
-        language,
-        languageName: languageLabel(language),
-        durationMs: transcript.duration_ms ?? recorded.durationMs,
-        isMock: transcript.is_mock,
-      },
-      ...current,
-    ])
-  })
-  const recording = dictation.status === 'recording'
-
-  let hint = 'Press the microphone and say something. Press stop when you’re done.'
-  if (dictation.status === 'requesting') hint = 'Waiting for microphone permission…'
-  else if (recording) hint = `Listening… ${formatClock(dictation.elapsedMs)} of ${formatClock(dictation.maxMs)}`
-  else if (dictation.transcribing) hint = 'Transcribing…'
-  else if (dictation.unavailableReason) hint = dictation.unavailableReason
+  const sampleStatus = player.key === 'sample' ? player.status : 'idle'
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
         eyebrow="Speak & listen"
         title="Voice Learning"
-        description={`Ask out loud and hear your tutor answer · ${languageLabel(language)}`}
+        description={`Talk with your tutor and hear the answers · ${languageLabel(language)}`}
         art={
           <Float rotate={-4}>
             <Headphones className="w-full" />
           </Float>
         }
       />
-      <PhaseNotice phase={8}>
-        Voice input and read-aloud work now: record yourself, correct the transcript, and listen
-        to it or to any tutor reply in a lesson. A live spoken conversation with the tutor arrives
-        in Phase 8. Real speech replaces the mock once the Gnani provider is configured.
-      </PhaseNotice>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <Card tone="ink" className="relative flex min-h-[22rem] flex-col items-center justify-center gap-6 overflow-hidden px-6 py-12">
-          <div className="relative grid place-items-center" aria-hidden>
-            <span className="absolute size-44 rounded-full border-2 border-[#fbf6ec]/15" />
-            <span className="absolute size-60 rounded-full border-2 border-[#fbf6ec]/10" />
-            <span className="absolute size-76 rounded-full border-2 border-[#fbf6ec]/5" />
-          </div>
-          <Button
-            variant="sun"
-            onClick={recording ? dictation.stop : dictation.start}
-            loading={dictation.status === 'requesting' || dictation.transcribing}
-            disabled={!dictation.ready}
-            aria-label={recording ? 'Stop recording' : 'Start speaking'}
-            aria-pressed={recording}
-            className={`relative size-28 rounded-full shadow-[6px_6px_0_0_#7c3aed] ${recording ? 'animate-pulse' : ''}`}
-          >
-            {recording ? <Square className="size-10" aria-hidden /> : <Mic className="size-12" aria-hidden />}
-          </Button>
-          <p className="relative text-center text-[#fbf6ec]/80" aria-live="polite">
-            {hint}
-          </p>
-          {dictation.error && (
-            <p role="alert" className="relative max-w-md rounded-2xl bg-rose px-4 py-2 text-center text-sm font-medium text-[#5c0f24]">
-              {dictation.error}
-            </p>
-          )}
-          <div className="relative flex gap-3">
-            <Button variant="secondary" disabled={!recording} onClick={dictation.stop}>
-              <Square className="size-4" aria-hidden /> Stop
-            </Button>
-            {recording && (
-              <Button variant="ghost" className="text-[#fbf6ec] hover:bg-white/10" onClick={dictation.cancel}>
-                <X className="size-4" aria-hidden /> Cancel
-              </Button>
-            )}
-          </div>
+      <div className="grid items-start gap-6 lg:grid-cols-[18rem_1fr]">
+        <Card>
+          <CardHeader title="Conversations" />
+          <CardBody>
+            <VoiceConversations
+              selectedId={conversationId}
+              onSelect={(c) => setSearchParams({ c: c.id })}
+              language={language}
+              level={level}
+            />
+          </CardBody>
         </Card>
 
+        <div className="min-w-0">
+          {conversationId ? (
+            <VoiceSession
+              voice={voice}
+              autoSend={autoSend}
+              onAutoSendChange={(value) => {
+                setAutoSend(value)
+                writeStorage(AUTO_SEND_KEY, value)
+              }}
+            />
+          ) : (
+            <Card>
+              <EmptyState
+                art={
+                  <Float distance={6}>
+                    <RobotTutor className="w-full" />
+                  </Float>
+                }
+                title="Talk with your tutor"
+                description="Start a new voice conversation, or pick up a recent one. Ask out loud and the tutor answers aloud. You can cut in at any time."
+              />
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card tone="sun">
           <CardHeader title="Playback" />
           <CardBody className="space-y-4">
@@ -138,7 +119,7 @@ export default function VoiceTutorPage() {
                 </Select>
               )}
             </Field>
-            <Field label="Voice" hint="Saved to your account and used for every read-aloud.">
+            <Field label="Voice" hint="Saved to your account and used for every spoken reply.">
               {(c) => (
                 <Select
                   {...c}
@@ -176,57 +157,14 @@ export default function VoiceTutorPage() {
             {(voiceSettings.error || player.error) && <Alert>{voiceSettings.error ?? player.error}</Alert>}
           </CardBody>
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader title="Speech services" />
-        <CardBody>
-          <SpeechStatus />
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader
-          title="Transcript"
-          description="Correct anything the recogniser got wrong. Transcripts stay until you leave this page."
-        />
-        {entries.length === 0 ? (
-          <EmptyState
-            art={<SpeechWaves className="w-full" />}
-            title="Nothing said yet"
-            description="Record yourself and your words appear here, ready to correct."
-          />
-        ) : (
+        <Card>
+          <CardHeader title="Speech services" />
           <CardBody>
-            <TranscriptList
-              entries={entries}
-              onChange={(id, text) =>
-                setEntries((current) => current.map((e) => (e.id === id ? { ...e, text } : e)))
-              }
-              onRemove={(id) => {
-                if (player.key === id) player.stop()
-                setEntries((current) => current.filter((e) => e.id !== id))
-              }}
-              actions={(entry, number) => {
-                const status = statusOf(entry.id)
-                const Icon = status === 'playing' ? Pause : status === 'paused' ? Play : Volume2
-                return (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    loading={status === 'loading'}
-                    disabled={player.unavailableReason(entry.language) !== null || !entry.text.trim()}
-                    onClick={() => player.toggle(entry.id, entry.text, entry.language)}
-                    aria-label={`${PLAY_LABEL[status]} recording ${number} read aloud`}
-                  >
-                    <Icon className="size-4" aria-hidden /> {PLAY_LABEL[status]}
-                  </Button>
-                )
-              }}
-            />
+            <SpeechStatus />
           </CardBody>
-        )}
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

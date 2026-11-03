@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–7 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), and read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–8 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), and the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)
@@ -97,9 +97,10 @@ docker-compose.yml   Postgres (pgvector) + Redis
 | Auth | `POST /auth/register`, `/auth/login`, `/auth/refresh`*, `/auth/logout`*, `/auth/change-password`*, `/auth/password-reset/request`, `/auth/password-reset/confirm` |
 | User | `GET/PATCH /users/me`, `GET/PATCH /users/me/preferences` |
 | Lessons | `GET/POST /lessons`, `GET/PATCH/DELETE /lessons/{id}` |
-| Conversations | `GET/POST /conversations`, `GET/DELETE /conversations/{id}`, `POST /conversations/{id}/messages` |
+| Conversations | `GET/POST /conversations` (`?mode=voice` to filter), `GET/DELETE /conversations/{id}`, `POST /conversations/{id}/messages` |
 | AI tutor | `GET /tutor/info`, `POST /tutor/lessons` (plan + classroom), `POST /tutor/conversations/{id}/reply` (SSE stream), `POST /tutor/lessons/{id}/summary` |
 | Speech | `GET /speech/info`, `POST /speech/transcribe?language=` (raw audio body), `POST /speech/synthesize` (returns audio) |
+| Voice tutor | WebSocket `/voice/ws` (protocol in ARCHITECTURE.md › Voice tutor) |
 
 \* Cookie-authenticated routes require the header `X-CSRF-Protection: 1`. Other routes use `Authorization: Bearer <access_token>`.
 Interactive docs: http://localhost:8000/docs
@@ -110,7 +111,7 @@ Interactive docs: http://localhost:8000/docs
 
 **Password reset in development:** without SMTP settings, the reset email (with its link) is printed in the backend log.
 
-**Dev server tip:** run uvicorn with `--reload-dir app`. Watching `.venv` makes package installs trigger reloads that can hang.
+**Dev server tip:** run uvicorn with `--reload-dir app`. Watching `.venv` makes package installs trigger reloads that can hang. On Windows, if new routes return 404/403, check that no old server still holds port 8000 (`Get-NetTCPConnection -LocalPort 8000`).
 
 ## Documents
 - [ARCHITECTURE.md](ARCHITECTURE.md) · [DATABASE_DESIGN.md](DATABASE_DESIGN.md) · [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) · [TASKS.md](TASKS.md) · [DECISIONS.md](DECISIONS.md)

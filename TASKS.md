@@ -78,7 +78,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 6.5 Voice Learning: working mic and Stop, transcript list with correction ("Corrected" badge, undo) and remove
 - [x] 6.6 Tests: frontend 103 (11 new, fake microphone helper), backend 107 (voice input mode stored); real Chromium run with a fake microphone device: real WebM uploads accepted, transcripts shown, dictated message sent as voice, 1440 px light / 390 px dark
 
-## Phase 7 — Text-to-speech (UI + pipeline) ✅ (branch `phase-7-tts`, awaiting your approval)
+## Phase 7 — Text-to-speech (UI + pipeline) ✅ (merged to `main`)
 - [x] 7.1 Speech text: Markdown replies converted to plain spoken sentences (code blocks skipped) and split into ≤400-character pieces at sentence ends (incl. the danda) or, if needed, between words
 - [x] 7.2 `useSpeechPlayer`: pieces synthesized in order with the next one prefetched; play / pause / resume / stop; progress across pieces; cached audio; object URLs released; blocked-autoplay and network errors explained
 - [x] 7.3 Voice + speed preferences saved to the account (optimistic, rolled back on error); speed applies immediately via `playbackRate`
@@ -88,5 +88,16 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 7.7 Settings → System shows the live AI model and speech providers (replacing static text)
 - [x] 7.8 Tests: frontend 117 (14 new, fake audio helper); real Chromium run: sample played to the end, voice/speed kept after reload, lesson reply played with progress, pause, resume and stop; 1440 px light / 390 px dark
 
-## Phases 8–15
+## Phase 8 — Voice tutor ✅ (branch `phase-8-voice-tutor`, ⏸ awaiting your approval)
+- [x] 8.1 WebSocket `/api/v1/voice/ws`: hello handshake with access token, origin check, conversation ownership; close codes 4400/4401/4403/4404; ping/pong
+- [x] 8.2 Recording upload over the socket (header + binary frame), validated with the same checks as `/speech/transcribe`, then transcribed
+- [x] 8.3 Turns reuse the tutor pipeline (`turn_events`, shared with the SSE route); spoken reply style for voice conversations
+- [x] 8.4 Streaming speech: sentence splitter (incl. danda, Markdown stripped) → TTS task → ordered audio frames while the model is still writing; continues as text-only if TTS is unavailable
+- [x] 8.5 Interruption and barge-in cancel the model and speech; unfinished replies are not saved; per-turn numbering drops late frames
+- [x] 8.6 Rate limits on turns (AI) and recordings (speech) for socket clients (`check_rate_limit`)
+- [x] 8.7 Frontend: `VoiceConnection` (token hello, refresh on 4401, reconnect with backoff, audio frame pairing), `AudioQueue`, `useVoiceTutor`; Voice Learning rebuilt: recent voice conversations, new conversation, live session (mic, stop tutor, auto-send or review-and-correct, type instead, live log), playback + speech services cards; conversation kept in the URL so a reload resumes it
+- [x] 8.8 `GET /conversations?mode=voice`; Voice Learning no longer marked "soon"
+- [x] 8.9 Tests: backend 125 (18 new, WebSocket tests with `httpx-ws`), frontend 124 (13 new, fake WebSocket); real Chromium run with a fake microphone: speak → transcript → streamed reply with 7 audio sentences → interrupt → review-and-correct → reply → reload reconnects with history; 1440 px light / 390 px dark
+
+## Phases 9–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

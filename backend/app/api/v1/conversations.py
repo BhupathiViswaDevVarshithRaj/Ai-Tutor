@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUser, SessionDep
+from app.db.enums import ConversationMode
 from app.schemas.common import Page
 from app.schemas.learning import (
     ConversationCreate,
@@ -22,11 +23,12 @@ async def list_conversations(
     user: CurrentUser,
     session: SessionDep,
     lesson_id: uuid.UUID | None = None,
+    mode: ConversationMode | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> Page[ConversationOut]:
     items, total = await learning_service.list_conversations(
-        session, user.id, lesson_id=lesson_id, limit=limit, offset=offset
+        session, user.id, lesson_id=lesson_id, limit=limit, offset=offset, mode=mode
     )
     return Page[ConversationOut](
         items=[ConversationOut.model_validate(i) for i in items],

@@ -52,6 +52,19 @@ def language_rule(code: str) -> str:
     )
 
 
+WRITTEN_FORMAT = (
+    "## Format\n"
+    "Use Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists for "
+    "steps. Keep a reply under about 300 words unless the learner asks for more."
+)
+SPOKEN_FORMAT = (
+    "## Format\n"
+    "This is a spoken conversation: every reply is read aloud. Write plain sentences only - "
+    "no Markdown, lists, tables, code or symbols that would sound odd when spoken. Use short, "
+    "natural sentences and keep a reply under about 120 words; offer to go on if there is more."
+)
+
+
 def tutor_system_prompt(
     *,
     level: LearningLevel,
@@ -59,6 +72,7 @@ def tutor_system_prompt(
     interests: list[str],
     topic: str | None,
     plan: dict | None,
+    spoken: bool = False,
 ) -> str:
     parts = [
         "You are a warm, patient, expert personal tutor in an online learning app. You teach "
@@ -73,9 +87,7 @@ def tutor_system_prompt(
         "- Answer follow-up questions directly before returning to the lesson.\n"
         "- If you are not sure about something, say so rather than guessing.\n"
         "- Stay on learning. Politely decline requests unrelated to studying.",
-        "## Format\n"
-        "Use Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists for "
-        "steps. Keep a reply under about 300 words unless the learner asks for more.",
+        SPOKEN_FORMAT if spoken else WRITTEN_FORMAT,
         "## Level\n" + LEVEL_GUIDE[level],
         "## Language\n" + language_rule(language),
     ]

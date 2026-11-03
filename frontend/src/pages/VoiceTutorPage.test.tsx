@@ -5,8 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from '../app/AppRoutes'
 import {
   audioResponse,
+  FakeWebSocket,
   installFakeAudio,
   installFakeMic,
+  installFakeWebSocket,
   jsonResponse,
   MOCK_SPEECH_INFO,
   renderWithProviders,
@@ -20,13 +22,64 @@ afterEach(() => {
   mic = null
 })
 
-const transcriptOf = (text: string) => () =>
-  jsonResponse({ text, language: 'en', confidence: null, duration_ms: null, provider: 'mock', is_mock: true })
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+})
 
-async function readyMic() {
-  const start = await screen.findByRole('button', { name: 'Start speaking' })
-  await waitFor(() => expect(start).toBeEnabled())
-  return start
+const CONVERSATION = {
+  id: 'v1',
+  lesson_id: null,
+  title: 'Voice chat · 3 Nov',
+  mode: 'voice',
+  language: 'en',
+  level: 'beginner',
+  created_at: '2026-11-03T10:00:00Z',
+  updated_at: '2026-11-03T10:00:00Z',
+}
+
+function msg(id: string, role: 'user' | 'assistant', content: string, input_mode: 'text' | 'voice' = 'text') {
+  return { id, role, content, language: 'en', input_mode, created_at: '2026-11-03T10:01:00Z' }
+}
+
+const CAP = { available: true, is_mock: true, reason: null }
+
+/** Open /app/voice?c=v1 and complete the WebSocket handshake. */
+async function openSession(extra: Parameters<typeof signedInApi>[0] = {}, ready: Record<string, unknown> = {}) {
+  installFakeWebSocket()
+  const api = signedInApi({
+    'GET /conversations': () => jsonResponse({ items: [CONVERSATION], total: 1, limit: 10, offset: 0 }),
+    ...extra,
+  })
+  renderWithProviders(<AppRoutes />, { route: '/app/voice?c=v1' })
+  await waitFor(() => expect(FakeWebSocket.instances.length).toBeGreaterThan(0))
+  const ws = FakeWebSocket.latest()
+  act(() => ws.open())
+  expect(ws.json[0]).toMatchObject({ type: 'hello', conversation_id: 'v1' })
+  act(() =>
+    ws.emit({
+      type: 'ready',
+      conversation: { ...CONVERSATION, messages: [] },
+      ai: { is_mock: true },
+      stt: CAP,
+      tts: CAP,
+      ...ready,
+    }),
+  )
+  await screen.findByText('Live')
+  return { ws, api }
+}
+
+/** Server side of one complete spoken turn. */
+function replyTurn(ws: FakeWebSocket, turn: number, question: string, answer: string, mode: 'text' | 'voice') {
+  act(() => {
+    ws.emit({ type: 'turn_start', turn, user_message: msg(`u${turn}`, 'user', question, mode), mock: true })
+    ws.emit({ type: 'delta', turn, text: answer })
+    ws.emit({ type: 'audio', turn, seq: 0, text: answer, mime: 'audio/wav', duration_ms: 900, voice: 'mock-bright' })
+    ws.emitBinary(new Blob(['RIFF'], { type: 'audio/wav' }))
+    ws.emit({ type: 'turn_done', turn, message: msg(`a${turn}`, 'assistant', answer), truncated: false })
+    ws.emit({ type: 'speech_done', turn })
+  })
 }
 
 describe('Voice Learning speech status', () => {
@@ -56,95 +109,6 @@ describe('Voice Learning speech status', () => {
     expect(await screen.findByText('Unavailable')).toBeInTheDocument()
     expect(screen.getByText(reason, { exact: false })).toBeInTheDocument()
     expect(screen.getByLabelText('Hindi speech recognition not supported')).toBeInTheDocument()
-  })
-})
-
-describe('Voice Learning recording', () => {
-  it('records, uploads, and lets the learner correct the transcript', async () => {
-    const user = userEvent.setup()
-    mic = installFakeMic()
-    const api = signedInApi({ 'POST /speech/transcribe': transcriptOf('photosinthesis is how plants eat') })
-    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
-
-    await user.click(await readyMic())
-    expect(await screen.findByRole('button', { name: 'Stop recording' })).toHaveAttribute('aria-pressed', 'true')
-    mic.advance(2300)
-    await user.click(screen.getByRole('button', { name: 'Stop recording' }))
-
-    const box = await screen.findByLabelText('Transcript of recording 1')
-    expect(box).toHaveValue('photosinthesis is how plants eat')
-    expect(mic.track.stop).toHaveBeenCalled() // microphone released
-    const upload = api.find('POST /speech/transcribe')[0]
-    expect(upload.headers.get('Content-Type')).toBe('audio/webm')
-    const url = String(vi.mocked(globalThis.fetch).mock.calls.find(([u]) => String(u).includes('/speech/transcribe'))?.[0])
-    expect(url).toBe('/api/v1/speech/transcribe?language=en')
-    expect(screen.getByText(/0:02/)).toBeInTheDocument()
-
-    await user.clear(box)
-    await user.type(box, 'photosynthesis is how plants eat')
-    expect(screen.getByText('Corrected')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Undo correction' }))
-    expect(box).toHaveValue('photosinthesis is how plants eat')
-    expect(screen.queryByText('Corrected')).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Remove recording 1' }))
-    expect(screen.getByText('Nothing said yet')).toBeInTheDocument()
-  })
-
-  it('explains a blocked microphone', async () => {
-    const user = userEvent.setup()
-    mic = installFakeMic({ deny: 'NotAllowedError' })
-    signedInApi()
-    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
-
-    await user.click(await readyMic())
-    expect(await screen.findByRole('alert')).toHaveTextContent('Microphone access was blocked')
-  })
-
-  it('discards accidental taps and cancelled recordings without uploading', async () => {
-    const user = userEvent.setup()
-    mic = installFakeMic()
-    const api = signedInApi({ 'POST /speech/transcribe': transcriptOf('hello') })
-    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
-
-    await user.click(await readyMic())
-    mic.advance(200)
-    await user.click(await screen.findByRole('button', { name: 'Stop recording' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('too short')
-
-    await user.click(screen.getByRole('button', { name: 'Start speaking' }))
-    mic.advance(3000)
-    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
-    await screen.findByRole('button', { name: 'Start speaking' })
-    expect(api.find('POST /speech/transcribe')).toHaveLength(0)
-  })
-
-  it('shows the server error when transcription fails', async () => {
-    const user = userEvent.setup()
-    mic = installFakeMic()
-    signedInApi({
-      'POST /speech/transcribe': () =>
-        jsonResponse({ detail: 'Speech recognition is not available right now.', code: 'speech_not_configured' }, 503),
-    })
-    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
-
-    await user.click(await readyMic())
-    mic.advance(1500)
-    await user.click(await screen.findByRole('button', { name: 'Stop recording' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Speech recognition is not available right now.')
-  })
-
-  it('disables the microphone when speech recognition is unavailable', async () => {
-    signedInApi({
-      'GET /speech/info': () =>
-        jsonResponse({
-          ...MOCK_SPEECH_INFO,
-          stt: { provider: 'gnani', is_mock: false, available: false, unavailable_reason: 'off', languages: [] },
-        }),
-    })
-    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
-    expect(await screen.findByText('Voice input is not available right now.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Start speaking' })).toBeDisabled()
   })
 })
 
@@ -196,22 +160,135 @@ describe('Voice Learning playback settings', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Server error')
     expect(speed).toHaveValue('1')
   })
+})
 
-  it('reads a transcript back', async () => {
-    const user = userEvent.setup()
-    mic = installFakeMic()
-    installFakeAudio()
+describe('Voice tutor', () => {
+  it('starts a new voice conversation in the current language and level', async () => {
+    installFakeWebSocket()
     const api = signedInApi({
-      'POST /speech/transcribe': transcriptOf('hello there'),
-      'POST /speech/synthesize': () => audioResponse(),
+      'GET /conversations': () => jsonResponse({ items: [], total: 0, limit: 10, offset: 0 }),
+      'POST /conversations': () => jsonResponse(CONVERSATION, 201),
     })
+    const user = userEvent.setup()
     renderWithProviders(<AppRoutes />, { route: '/app/voice' })
+    expect(await screen.findByText('No voice conversations yet.')).toBeInTheDocument()
 
-    await user.click(await readyMic())
+    await user.click(screen.getByRole('button', { name: 'New voice conversation' }))
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1))
+    expect(api.find('POST /conversations')[0].body).toMatchObject({ language: 'en', level: 'beginner', mode: 'voice' })
+    expect(FakeWebSocket.latest().url).toMatch(/\/api\/v1\/voice\/ws$/)
+  })
+
+  it('speaks a question, streams the reply and plays it sentence by sentence', async () => {
+    const mic = installFakeMic()
+    const audio = installFakeAudio()
+    const user = userEvent.setup()
+    const { ws } = await openSession()
+
+    await user.click(screen.getByRole('button', { name: 'Talk to your tutor' }))
     mic.advance(1500)
     await user.click(await screen.findByRole('button', { name: 'Stop recording' }))
-    await user.click(await screen.findByRole('button', { name: 'Listen recording 1 read aloud' }))
-    await waitFor(() => expect(api.find('POST /speech/synthesize')).toHaveLength(1))
-    expect((api.find('POST /speech/synthesize')[0].body as { text: string }).text).toBe('hello there.')
+    await waitFor(() => expect(ws.sent.some((d) => d instanceof Blob)).toBe(true))
+    expect(ws.json.at(-1)).toEqual({ type: 'audio', mime: 'audio/webm' })
+
+    // Auto-send is on: the transcript goes straight to the tutor as a spoken message.
+    act(() => ws.emit({ type: 'transcript', text: 'What is light?', language: 'en', duration_ms: 1500, is_mock: true }))
+    expect(ws.json.at(-1)).toEqual({ type: 'say', text: 'What is light?', input_mode: 'voice', voice: null })
+
+    replyTurn(ws, 1, 'What is light?', 'Light is energy you can see.', 'voice')
+    const log = screen.getByRole('list', { name: 'Voice conversation' })
+    expect(within(log).getByText('Light is energy you can see.')).toBeInTheDocument()
+    expect(within(log).getByText('spoken')).toBeInTheDocument()
+    expect(audio.played).toEqual(['blob:test/1'])
+    mic.uninstall()
+  })
+
+  it('cuts the tutor off and ignores what was still in flight', async () => {
+    const audio = installFakeAudio()
+    const user = userEvent.setup()
+    const { ws } = await openSession()
+
+    await user.type(screen.getByLabelText('Type a message instead'), 'Tell me a story{Enter}')
+    expect(ws.json.at(-1)).toEqual({ type: 'say', text: 'Tell me a story', input_mode: 'text', voice: null })
+    act(() => {
+      ws.emit({ type: 'turn_start', turn: 1, user_message: msg('u1', 'user', 'Tell me a story'), mock: true })
+      ws.emit({ type: 'delta', turn: 1, text: 'Once upon a time' })
+    })
+    expect(await screen.findByText('Once upon a time')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Stop tutor' }))
+    expect(ws.json.at(-1)).toEqual({ type: 'interrupt' })
+    act(() => {
+      ws.emit({ type: 'delta', turn: 1, text: ' there was a late frame' })
+      ws.emit({ type: 'audio', turn: 1, seq: 0, text: 'x', mime: 'audio/wav', duration_ms: 1, voice: 'v' })
+      ws.emitBinary(new Blob(['RIFF']))
+      ws.emit({ type: 'interrupted', turn: 1 })
+    })
+    expect(screen.queryByText(/late frame/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Once upon a time')).not.toBeInTheDocument()
+    expect(audio.played).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'Stop tutor' })).not.toBeInTheDocument()
+  })
+
+  it('holds the transcript for correction when auto-send is off', async () => {
+    const mic = installFakeMic()
+    const user = userEvent.setup()
+    const { ws } = await openSession()
+
+    await user.click(screen.getByLabelText(/Send what I say straight away/))
+    await user.click(screen.getByRole('button', { name: 'Talk to your tutor' }))
+    mic.advance(1200)
+    await user.click(await screen.findByRole('button', { name: 'Stop recording' }))
+    act(() => ws.emit({ type: 'transcript', text: 'photosinthesis', language: 'en', duration_ms: 1200, is_mock: true }))
+
+    const review = screen.getByLabelText(/You said/)
+    expect(review).toHaveValue('photosinthesis')
+    expect(ws.json.some((m) => m.type === 'say')).toBe(false)
+    await user.clear(review)
+    await user.type(review, 'photosynthesis')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    expect(ws.json.at(-1)).toEqual({ type: 'say', text: 'photosynthesis', input_mode: 'voice', voice: null })
+    expect(screen.queryByLabelText(/You said/)).not.toBeInTheDocument()
+    expect(localStorage.getItem('aitutor.voice.autoSend')).toBe('false')
+    mic.uninstall()
+  })
+
+  it('shows history after reconnecting, and offers a retry when the session ends', async () => {
+    const { ws } = await openSession()
+    act(() => ws.serverClose(1006))
+    expect(await screen.findByText('Reconnecting…')).toBeInTheDocument()
+
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(2), { timeout: 3000 })
+    const again = FakeWebSocket.latest()
+    act(() => again.open())
+    act(() =>
+      again.emit({
+        type: 'ready',
+        conversation: { ...CONVERSATION, messages: [msg('u1', 'user', 'Earlier question'), msg('a1', 'assistant', 'Earlier answer')] },
+        ai: { is_mock: true },
+        stt: CAP,
+        tts: CAP,
+      }),
+    )
+    expect(await screen.findByText('Earlier answer')).toBeInTheDocument()
+
+    act(() => again.serverClose(4404))
+    expect(await screen.findByText('This conversation no longer exists.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Reconnect/ })).toBeInTheDocument()
+  })
+
+  it('disables the microphone with a reason when voice input is unavailable', async () => {
+    await openSession({}, { stt: { available: false, is_mock: false, reason: 'Voice input is not available right now.' } })
+    expect(screen.getByText('Voice input is not available right now.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Talk to your tutor' })).toBeDisabled()
+    expect(screen.getByLabelText('Type a message instead')).toBeEnabled()
+  })
+
+  it('shows server errors', async () => {
+    const user = userEvent.setup()
+    const { ws } = await openSession()
+    await user.type(screen.getByLabelText('Type a message instead'), 'Hi{Enter}')
+    act(() => ws.emit({ type: 'error', code: 'rate_limited', message: 'Too many attempts. Please wait and try again.', retryable: true }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts')
   })
 })

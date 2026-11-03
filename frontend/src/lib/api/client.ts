@@ -58,6 +58,11 @@ export function setSession(session: AuthSession | null): void {
   listeners.forEach((listener) => listener(session))
 }
 
+/** The in-memory access token (for transports that can't use apiFetch, e.g. WebSockets). */
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
 export function sessionFromTokens(tokens: TokenResponse): AuthSession {
   return { accessToken: tokens.access_token, user: tokens.user }
 }

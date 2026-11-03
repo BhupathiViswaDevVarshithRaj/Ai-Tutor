@@ -88,11 +88,23 @@ async def read_audio(request: Request, settings: Settings) -> tuple[bytes, str]:
             raise too_large
         chunks.append(chunk)
     audio = b"".join(chunks)
+    validate_audio(audio, mime, settings)
+    return audio, mime
+
+
+def validate_audio(audio: bytes, mime: str, settings: Settings) -> None:
+    """Type, size and content checks shared by HTTP and WebSocket uploads."""
+    if mime not in ACCEPTED_AUDIO_TYPES:
+        raise AppError(
+            415, "unsupported_audio", "Unsupported audio type. Use WebM, Ogg, WAV, MP3 or MP4."
+        )
+    if len(audio) > settings.speech_max_audio_bytes:
+        limit = settings.speech_max_audio_bytes // 1_048_576
+        raise AppError(413, "audio_too_large", f"Audio is larger than {limit} MB.")
     if len(audio) < MIN_AUDIO_BYTES:
         raise AppError(422, "audio_too_short", "The recording is empty or too short.")
     if sniff_container(audio) != ACCEPTED_AUDIO_TYPES[mime]:
         raise AppError(415, "unsupported_audio", "The file is not valid audio of the stated type.")
-    return audio, mime
 
 
 async def transcribe(

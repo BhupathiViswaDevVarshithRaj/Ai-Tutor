@@ -1,10 +1,20 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { AppRoutes } from '../app/AppRoutes'
 import type { ChatMessage, Lesson } from '../lib/api/types'
-import { installFakeMic, jsonResponse, renderWithProviders, signedInApi, sseResponse } from '../test/utils'
+import {
+  audioResponse,
+  installFakeAudio,
+  installFakeMic,
+  jsonResponse,
+  MOCK_SPEECH_INFO,
+  renderWithProviders,
+  signedInApi,
+  sseResponse,
+  TEST_USER,
+} from '../test/utils'
 
 const LESSON: Lesson = {
   id: 'l1',
@@ -223,5 +233,100 @@ describe('AI tutor flow', () => {
     renderWithProviders(<AppRoutes />, { route: '/app/tutor/missing' })
     expect(await screen.findByText('Lesson not found')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to lessons' })).toHaveAttribute('href', '/app/tutor')
+  })
+})
+
+describe('Classroom read-aloud', () => {
+  const withReply = (content: string) => ({
+    'GET /conversations/c1': () =>
+      jsonResponse({ ...CONVERSATION, messages: [message('user', 'Hi'), message('assistant', content, 'a1')] }),
+  })
+
+  it('reads a reply aloud with pause, resume, stop and live speed changes', async () => {
+    const user = userEvent.setup()
+    const audio = installFakeAudio()
+    const api = lessonApi({
+      ...withReply('Plants use **sunlight**.'),
+      'POST /speech/synthesize': () => audioResponse(),
+      'PATCH /users/me/preferences': (c) =>
+        jsonResponse({ ...TEST_USER.preferences, ...(c.body as object) }),
+    })
+    renderWithProviders(<AppRoutes />, { route: '/app/tutor/l1' })
+
+    const listen = await screen.findByRole('button', { name: 'Read this reply aloud' })
+    await waitFor(() => expect(listen).toBeEnabled())
+    await user.click(listen)
+
+    // One on the reply, one in the playback bar.
+    expect(await screen.findAllByRole('button', { name: 'Pause reading' })).toHaveLength(2)
+    expect(api.find('POST /speech/synthesize')[0].body).toEqual({
+      text: 'Plants use sunlight.',
+      language: 'en',
+      voice: null,
+    })
+    expect(audio.played).toEqual(['blob:test/1'])
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Reading speed' }), '1.5')
+    expect(audio.current()?.playbackRate).toBe(1.5)
+    await waitFor(() => expect(api.find('PATCH /users/me/preferences').at(-1)?.body).toEqual({ tts_speed: 1.5 }))
+
+    const pauseButtons = screen.getAllByRole('button', { name: 'Pause reading' })
+    await user.click(pauseButtons[0])
+    expect(audio.pause).toHaveBeenCalled()
+    expect(screen.getAllByRole('button', { name: 'Resume reading' })).toHaveLength(2)
+    await user.click(screen.getAllByRole('button', { name: 'Resume reading' })[0])
+    expect(audio.played).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: 'Stop reading' }))
+    expect(screen.getByRole('button', { name: 'Read this reply aloud' })).toBeInTheDocument()
+    expect(audio.revoked).toContain('blob:test/1')
+  })
+
+  it('reads a long reply in parts, fetching the next while one plays', async () => {
+    const user = userEvent.setup()
+    const audio = installFakeAudio()
+    const long = `${'First sentence goes here. '.repeat(12)}${'Second part follows now. '.repeat(12)}`
+    const api = lessonApi({ ...withReply(long), 'POST /speech/synthesize': () => audioResponse() })
+    renderWithProviders(<AppRoutes />, { route: '/app/tutor/l1' })
+
+    const listen = await screen.findByRole('button', { name: 'Read this reply aloud' })
+    await waitFor(() => expect(listen).toBeEnabled())
+    await user.click(listen)
+
+    expect(await screen.findByText(/Part 1 of 2/)).toBeInTheDocument()
+    await waitFor(() => expect(api.find('POST /speech/synthesize')).toHaveLength(2)) // prefetched
+    const bodies = api.find('POST /speech/synthesize').map((c) => (c.body as { text: string }).text)
+    expect(bodies.every((t) => t.length <= 400)).toBe(true)
+
+    act(() => audio.finish())
+    expect(await screen.findByText(/Part 2 of 2/)).toBeInTheDocument()
+    expect(audio.played).toHaveLength(2)
+    act(() => audio.finish())
+    expect(await screen.findByRole('button', { name: 'Read this reply aloud' })).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Read-aloud progress' })).toHaveAttribute('aria-valuenow', '0')
+  })
+
+  it('explains failures and blocked playback', async () => {
+    const user = userEvent.setup()
+    installFakeAudio({ failWith: 'NotAllowedError' })
+    lessonApi({ ...withReply('Hello.'), 'POST /speech/synthesize': () => audioResponse() })
+    renderWithProviders(<AppRoutes />, { route: '/app/tutor/l1' })
+
+    const listen = await screen.findByRole('button', { name: 'Read this reply aloud' })
+    await waitFor(() => expect(listen).toBeEnabled())
+    await user.click(listen)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your browser blocked playback')
+  })
+
+  it('disables read-aloud when the language is not supported', async () => {
+    lessonApi({
+      ...withReply('Hello.'),
+      'GET /speech/info': () =>
+        jsonResponse({ ...MOCK_SPEECH_INFO, tts: { ...MOCK_SPEECH_INFO.tts, languages: ['hi'] } }),
+    })
+    renderWithProviders(<AppRoutes />, { route: '/app/tutor/l1' })
+    expect(await screen.findByText('Read-aloud doesn’t support English yet.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Read this reply aloud' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Read the latest reply aloud' })).toBeDisabled()
   })
 })

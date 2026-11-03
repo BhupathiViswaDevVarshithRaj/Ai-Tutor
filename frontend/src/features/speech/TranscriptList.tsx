@@ -1,8 +1,10 @@
 import { Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/feedback'
 import { Textarea } from '../../components/ui/form'
+import type { LanguageCode } from '../../lib/learning'
 import { formatClock } from './useRecorder'
 
 export type TranscriptEntry = {
@@ -10,6 +12,7 @@ export type TranscriptEntry = {
   text: string
   /** What the provider returned, so edits can be shown as corrections. */
   original: string
+  language: LanguageCode
   languageName: string
   durationMs: number
   isMock: boolean
@@ -20,10 +23,13 @@ export function TranscriptList({
   entries,
   onChange,
   onRemove,
+  actions,
 }: {
   entries: TranscriptEntry[]
   onChange: (id: string, text: string) => void
   onRemove: (id: string) => void
+  /** Extra controls per entry (e.g. read aloud). */
+  actions?: (entry: TranscriptEntry, number: number) => ReactNode
 }) {
   return (
     <ol className="space-y-4" aria-label="Transcripts">
@@ -43,15 +49,17 @@ export function TranscriptList({
                 </Badge>
               )}
               {edited && <Badge tone="brand">Corrected</Badge>}
+              <span className="ml-auto flex items-center gap-1">
+                {actions?.(entry, number)}
               <Button
                 variant="ghost"
                 size="sm"
-                className="ml-auto"
                 onClick={() => onRemove(entry.id)}
                 aria-label={`Remove recording ${number}`}
               >
                 <Trash2 className="size-4" aria-hidden /> Remove
               </Button>
+              </span>
             </div>
             <label htmlFor={`transcript-${entry.id}`} className="sr-only">
               Transcript of recording {number}

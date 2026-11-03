@@ -97,6 +97,17 @@ describe('SettingsPage', () => {
     expect(calls[1].body).toEqual({ current_password: 'learning123', new_password: 'newpass456' })
   })
 
+  it('shows the live AI and speech providers', async () => {
+    const user = userEvent.setup()
+    signedInApi()
+    await openSettings()
+
+    await user.click(screen.getByRole('tab', { name: 'System' }))
+    const panel = screen.getByRole('tabpanel')
+    expect(await within(panel).findByText('Mock (no API key set)')).toBeInTheDocument()
+    expect(within(panel).getAllByText('Mock (placeholder)')).toHaveLength(2)
+  })
+
   it('switches theme and persists it on this device', async () => {
     const user = userEvent.setup()
     signedInApi()

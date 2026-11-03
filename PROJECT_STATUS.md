@@ -1,7 +1,7 @@
 # Project Status
 
-**Current phase:** 6 — Speech-to-text UI and pipeline ✅ complete on branch `phase-6-stt`. ⏸ **Awaiting your approval** before Phase 7 (text-to-speech playback).
-`main` (also on GitHub): Phases 0–5 + UI redesign (`e718947`).
+**Current phase:** 7 — Text-to-speech UI and pipeline ✅ complete on branch `phase-7-tts`. ⏸ Next is Phase 8 (voice tutor), a major checkpoint.
+`main` (also on GitHub): Phases 0–6 + UI redesign (`1070a8f`).
 **Last updated:** 2026-11-03
 
 ## Completed
@@ -23,16 +23,19 @@
 
 - **Phase 6 (speech-to-text UI):** microphone recording with permission handling, validation, 60 s limit and cancel; transcription in the lesson language; dictation in the lesson classroom (correct, then send as voice input); Voice Learning records and lists editable transcripts.
 
+- **Phase 7 (text-to-speech UI):** read-aloud for every tutor reply with play/pause/resume/stop, progress and live speed; long replies read in sentence pieces with prefetching; voice and speed saved to the account; read-aloud disabled with a reason when unsupported; working Playback card and transcript read-back on Voice Learning; live provider info in Settings.
+
 ## Test results (actually executed, 2026-11-03)
 | Suite | Result |
 |---|---|
 | Backend (`pytest`, real Postgres + Redis test DB) | 107 passed |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 16 files, 103 tests passed |
+| Frontend (`vitest run`) | 17 files, 118 tests passed (two consecutive full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |
 | Live speech round-trip via curl through the Vite proxy (mock) | `/speech/info` 200 → Hindi text synthesized to a 2.7 s WAV → same WAV transcribed (duration 2714 ms, labelled mock transcript) |
+| Real-browser read-aloud (Playwright, Chromium) | Voice and speed saved → sample synthesized (WAV, mock-calm) and played to the end → settings kept after reload. Lesson reply synthesized and played with progress, then paused, resumed and stopped. 1440 px light, 390 px dark; no page errors |
 | Real-browser voice input (Playwright, Chromium fake microphone) | Voice Learning: record 2 s → real WebM accepted (200) → transcript shown → corrected. Lesson: dictate → text in composer → sent with `input_mode: "voice"` → reply streamed. 1440 px light, 390 px dark; no page errors |
 | Voice Learning page (Playwright) | 1440 px light + 390 px dark: no page errors, no overflow |
 | Live E2E via curl through the Vite proxy | register 201 → reset request 202 → link found in backend log → confirm 204 → login with new password 200 → old session refresh 401 |
@@ -50,7 +53,7 @@
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
-- Phase 7: text-to-speech playback: play/pause/speed controls on tutor replies and in Voice Learning, voice and speed preferences, using the mock voice until Gnani is configured.
+- Phase 8 ⏸: voice tutor — a live spoken conversation (WebSocket): speak → transcript → streamed tutor reply → read aloud, with interruption, reconnection and saved history.
 
 ## Blockers / pending inputs
 - `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).

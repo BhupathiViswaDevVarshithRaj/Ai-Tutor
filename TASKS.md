@@ -70,7 +70,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 5.6 Frontend: `lib/api/speech.ts` client (+ `apiRaw` for binary bodies), live "Speech services" card and real voice list on Voice Learning
 - [x] 5.7 Tests: backend 106 (40 new), frontend 92 (5 new); live round-trip through the dev servers; Playwright check of Voice Learning at 1440 px (light) and 390 px (dark)
 
-## Phase 6 — Speech-to-text (UI + pipeline) ✅ (branch `phase-6-stt`, awaiting your approval)
+## Phase 6 — Speech-to-text (UI + pipeline) ✅ (merged to `main`)
 - [x] 6.1 `useRecorder`: microphone permission, MediaRecorder with the best supported container (WebM/Opus → Ogg → MP4), 60 s auto-stop, live timer, cancel, microphone always released (also on unmount)
 - [x] 6.2 Validation: clear messages for blocked / missing / busy microphone and unsupported browsers; recordings under 0.5 s discarded; size checked against the server limit before upload
 - [x] 6.3 `useDictation`: upload to `/speech/transcribe` in the chosen language, server errors shown, mic disabled with a reason when speech recognition is unavailable or doesn't support the language
@@ -78,5 +78,15 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 6.5 Voice Learning: working mic and Stop, transcript list with correction ("Corrected" badge, undo) and remove
 - [x] 6.6 Tests: frontend 103 (11 new, fake microphone helper), backend 107 (voice input mode stored); real Chromium run with a fake microphone device: real WebM uploads accepted, transcripts shown, dictated message sent as voice, 1440 px light / 390 px dark
 
-## Phases 7–15
+## Phase 7 — Text-to-speech (UI + pipeline) ✅ (branch `phase-7-tts`, awaiting your approval)
+- [x] 7.1 Speech text: Markdown replies converted to plain spoken sentences (code blocks skipped) and split into ≤400-character pieces at sentence ends (incl. the danda) or, if needed, between words
+- [x] 7.2 `useSpeechPlayer`: pieces synthesized in order with the next one prefetched; play / pause / resume / stop; progress across pieces; cached audio; object URLs released; blocked-autoplay and network errors explained
+- [x] 7.3 Voice + speed preferences saved to the account (optimistic, rolled back on error); speed applies immediately via `playbackRate`
+- [x] 7.4 Capability gating: read-aloud disabled with a reason when the provider is unavailable or doesn't support the language
+- [x] 7.5 Lesson classroom: Listen / Pause / Resume on every tutor reply; playback bar (play latest reply, stop, progress, speed)
+- [x] 7.6 Voice Learning: working speed and voice controls, "Hear a sample" in each tutor language, Listen on transcripts
+- [x] 7.7 Settings → System shows the live AI model and speech providers (replacing static text)
+- [x] 7.8 Tests: frontend 118 (15 new, fake audio helper); real Chromium run: sample played to the end, voice/speed kept after reload, lesson reply played with progress, pause, resume and stop; 1440 px light / 390 px dark
+
+## Phases 8–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

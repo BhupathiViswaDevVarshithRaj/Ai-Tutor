@@ -30,3 +30,8 @@ export function languageLabel(code: LanguageCode): string {
   const lang = LANGUAGES.find((l) => l.code === code)
   return lang ? `${lang.native} (${lang.name})` : code
 }
+
+/** English name only (e.g. "Hindi"), for use inside sentences. */
+export function languageName(code: LanguageCode): string {
+  return LANGUAGES.find((l) => l.code === code)?.name ?? code
+}

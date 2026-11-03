@@ -1,4 +1,4 @@
-import { Mic, Square, X } from 'lucide-react'
+import { Mic, Pause, Play, Square, Volume2, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { usePreferences } from '../app/preferences-context'
@@ -8,7 +8,7 @@ import { Headphones, SpeechWaves } from '../components/illustrations/Audio'
 import { Float } from '../components/motion/Motion'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
-import { EmptyState } from '../components/ui/feedback'
+import { Alert, EmptyState } from '../components/ui/feedback'
 import { Field, Select } from '../components/ui/form'
 import { SpeechStatus } from '../features/speech/SpeechStatus'
 import { TranscriptList } from '../features/speech/TranscriptList'
@@ -16,13 +16,31 @@ import type { TranscriptEntry } from '../features/speech/TranscriptList'
 import { useDictation } from '../features/speech/useDictation'
 import { formatClock } from '../features/speech/useRecorder'
 import { useSpeechInfo } from '../features/speech/useSpeechInfo'
+import { useSpeechPlayer } from '../features/speech/useSpeechPlayer'
+import { SPEECH_SPEEDS, useVoiceSettings } from '../features/speech/useVoiceSettings'
+import type { LanguageCode } from '../lib/learning'
 import { languageLabel } from '../lib/learning'
 
-const SPEEDS = ['0.75', '1.0', '1.25', '1.5']
+/** A short line in each tutor language, for trying voices and speeds. */
+const SAMPLE_LINES: Record<LanguageCode, string> = {
+  en: 'Hello! I am your AI tutor. Shall we learn something new today?',
+  hi: 'नमस्ते! मैं आपका एआई ट्यूटर हूँ। क्या आज हम कुछ नया सीखें?',
+  te: 'నమస్కారం! నేను మీ AI ట్యూటర్‌ని. ఈ రోజు మనం కొత్తది నేర్చుకుందామా?',
+  ta: 'வணக்கம்! நான் உங்கள் AI ஆசிரியர். இன்று புதிதாக ஏதாவது கற்றுக்கொள்வோமா?',
+  pa: 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ AI ਟਿਊਟਰ ਹਾਂ। ਕੀ ਅੱਜ ਅਸੀਂ ਕੁਝ ਨਵਾਂ ਸਿੱਖੀਏ?',
+  bn: 'নমস্কার! আমি তোমার AI টিউটর। আজ কি আমরা নতুন কিছু শিখব?',
+}
+
+const PLAY_LABEL = { idle: 'Listen', loading: 'Loading', playing: 'Pause', paused: 'Resume' } as const
 
 export default function VoiceTutorPage() {
   const { language } = usePreferences()
   const voices = useSpeechInfo().data?.tts.voices ?? []
+  const voiceSettings = useVoiceSettings()
+  const player = useSpeechPlayer()
+  const readAloudBlocked = player.unavailableReason(language)
+  const statusOf = (key: string) => (player.key === key ? player.status : 'idle')
+  const sampleStatus = statusOf('sample')
   const [entries, setEntries] = useState<TranscriptEntry[]>([])
   const dictation = useDictation(language, (transcript, recorded) => {
     setEntries((current) => [
@@ -30,6 +48,7 @@ export default function VoiceTutorPage() {
         id: crypto.randomUUID(),
         text: transcript.text,
         original: transcript.text,
+        language,
         languageName: languageLabel(language),
         durationMs: transcript.duration_ms ?? recorded.durationMs,
         isMock: transcript.is_mock,
@@ -58,10 +77,9 @@ export default function VoiceTutorPage() {
         }
       />
       <PhaseNotice phase={8}>
-        Voice input works now: record yourself and correct the transcript below (you can also
-        dictate in any lesson). Read-aloud arrives in Phase 7, and a live spoken conversation
-        with the tutor in Phase 8. Real speech replaces the mock once the Gnani provider is
-        configured.
+        Voice input and read-aloud work now: record yourself, correct the transcript, and listen
+        to it or to any tutor reply in a lesson. A live spoken conversation with the tutor arrives
+        in Phase 8. Real speech replaces the mock once the Gnani provider is configured.
       </PhaseNotice>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -107,18 +125,27 @@ export default function VoiceTutorPage() {
           <CardBody className="space-y-4">
             <Field label="Speech speed">
               {(c) => (
-                <Select {...c} disabled defaultValue="1.0">
-                  {SPEEDS.map((s) => (
-                    <option key={s} value={s}>
+                <Select
+                  {...c}
+                  value={String(voiceSettings.speed)}
+                  onChange={(e) => void voiceSettings.setSpeed(Number(e.target.value))}
+                >
+                  {SPEECH_SPEEDS.map((s) => (
+                    <option key={s} value={String(s)}>
                       {s}×
                     </option>
                   ))}
                 </Select>
               )}
             </Field>
-            <Field label="Voice" hint="Available voices depend on the speech provider.">
+            <Field label="Voice" hint="Saved to your account and used for every read-aloud.">
               {(c) => (
-                <Select {...c} disabled>
+                <Select
+                  {...c}
+                  value={voiceSettings.voice ?? ''}
+                  disabled={voices.length === 0}
+                  onChange={(e) => void voiceSettings.setVoice(e.target.value || null)}
+                >
                   <option value="">Default</option>
                   {voices.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -128,6 +155,25 @@ export default function VoiceTutorPage() {
                 </Select>
               )}
             </Field>
+            <Button
+              variant="secondary"
+              className="w-full"
+              loading={sampleStatus === 'loading'}
+              disabled={readAloudBlocked !== null}
+              title={readAloudBlocked ?? undefined}
+              onClick={() => player.toggle('sample', SAMPLE_LINES[language], language)}
+            >
+              {sampleStatus === 'playing' ? (
+                <Pause className="size-4" aria-hidden />
+              ) : (
+                <Volume2 className="size-4" aria-hidden />
+              )}
+              {sampleStatus === 'playing' ? 'Pause sample' : sampleStatus === 'paused' ? 'Resume sample' : 'Hear a sample'}
+            </Button>
+            <p className="text-xs" aria-live="polite">
+              {readAloudBlocked ?? (player.isMock ? 'Mock voice: plays tones, not speech.' : `Sample in ${languageLabel(language)}.`)}
+            </p>
+            {(voiceSettings.error || player.error) && <Alert>{voiceSettings.error ?? player.error}</Alert>}
           </CardBody>
         </Card>
       </div>
@@ -157,7 +203,26 @@ export default function VoiceTutorPage() {
               onChange={(id, text) =>
                 setEntries((current) => current.map((e) => (e.id === id ? { ...e, text } : e)))
               }
-              onRemove={(id) => setEntries((current) => current.filter((e) => e.id !== id))}
+              onRemove={(id) => {
+                if (player.key === id) player.stop()
+                setEntries((current) => current.filter((e) => e.id !== id))
+              }}
+              actions={(entry, number) => {
+                const status = statusOf(entry.id)
+                const Icon = status === 'playing' ? Pause : status === 'paused' ? Play : Volume2
+                return (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    loading={status === 'loading'}
+                    disabled={player.unavailableReason(entry.language) !== null || !entry.text.trim()}
+                    onClick={() => player.toggle(entry.id, entry.text, entry.language)}
+                    aria-label={`${PLAY_LABEL[status]} recording ${number} read aloud`}
+                  >
+                    <Icon className="size-4" aria-hidden /> {PLAY_LABEL[status]}
+                  </Button>
+                )
+              }}
             />
           </CardBody>
         )}

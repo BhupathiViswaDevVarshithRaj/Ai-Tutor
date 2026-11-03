@@ -185,3 +185,49 @@ export function installFakeMic({ deny }: { deny?: string } = {}) {
     },
   }
 }
+
+/**
+ * Fake audio playback for jsdom: `play()` resolves (or rejects with `failWith`), object URLs are
+ * stubbed, and `finish()` ends the clip that is playing.
+ */
+export function installFakeAudio({ failWith }: { failWith?: string } = {}) {
+  const played: string[] = []
+  const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function (this: HTMLMediaElement) {
+    played.push(this.src)
+    return failWith ? Promise.reject(new DOMException('blocked', failWith)) : Promise.resolve()
+  })
+  let next = 0
+  const created: string[] = []
+  const revoked: string[] = []
+  URL.createObjectURL = vi.fn(() => {
+    const url = `blob:test/${++next}`
+    created.push(url)
+    return url
+  })
+  URL.revokeObjectURL = vi.fn((url: string) => {
+    revoked.push(url)
+  })
+  return {
+    played,
+    pause,
+    created,
+    revoked,
+    /** The element `play()` was last called on. */
+    current: () => play.mock.contexts.at(-1) as HTMLMediaElement | undefined,
+    finish: () => (play.mock.contexts.at(-1) as HTMLMediaElement | undefined)?.dispatchEvent(new Event('ended')),
+  }
+}
+
+/** /speech/synthesize response: a tiny WAV body plus the metadata headers. */
+export function audioResponse(durationMs = 1000, voice = 'mock-bright'): Response {
+  return new Response(new Uint8Array([82, 73, 70, 70, 0, 0, 0, 0, 87, 65, 86, 69]), {
+    headers: {
+      'Content-Type': 'audio/wav',
+      'X-Speech-Duration-Ms': String(durationMs),
+      'X-Speech-Voice': voice,
+      'X-Speech-Provider': 'mock',
+      'X-Speech-Mock': 'true',
+    },
+  })
+}

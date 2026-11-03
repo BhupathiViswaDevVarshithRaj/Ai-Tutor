@@ -1,6 +1,6 @@
-import { Mic, Pause, Play, RotateCw, Send, Square, X } from 'lucide-react'
+import { LoaderCircle, Mic, Pause, Play, RotateCw, Send, Square, Volume2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent, KeyboardEvent } from 'react'
+import type { FormEvent, KeyboardEvent, ReactNode } from 'react'
 
 import { Markdown } from '../../components/Markdown'
 import { RobotAvatar, RobotTutor } from '../../components/illustrations/Robot'
@@ -14,6 +14,8 @@ import type { ChatMessage, InputMode } from '../../lib/api/types'
 import type { LanguageCode } from '../../lib/learning'
 import { formatClock } from '../speech/useRecorder'
 import { useDictation } from '../speech/useDictation'
+import { useSpeechPlayer } from '../speech/useSpeechPlayer'
+import { SPEECH_SPEEDS, useVoiceSettings } from '../speech/useVoiceSettings'
 import type { useTutorChat } from './useTutorChat'
 
 const FOLLOW_UPS = [
@@ -24,7 +26,15 @@ const FOLLOW_UPS = [
   'Next section, please',
 ]
 
-function Bubble({ message, streaming = false }: { message: Pick<ChatMessage, 'role' | 'content'>; streaming?: boolean }) {
+function Bubble({
+  message,
+  streaming = false,
+  listen,
+}: {
+  message: Pick<ChatMessage, 'role' | 'content'>
+  streaming?: boolean
+  listen?: ReactNode
+}) {
   const mine = message.role === 'user'
   return (
     <li className={cn('flex gap-3', mine && 'flex-row-reverse')}>
@@ -50,8 +60,41 @@ function Bubble({ message, streaming = false }: { message: Pick<ChatMessage, 'ro
         {streaming && (
           <span className="mt-1 inline-block h-4 w-2 animate-pulse rounded-sm bg-brand-500 align-middle" aria-hidden />
         )}
+        {listen}
       </div>
     </li>
+  )
+}
+
+function ListenButton({
+  status,
+  disabledReason,
+  onClick,
+}: {
+  status: 'idle' | 'loading' | 'playing' | 'paused'
+  disabledReason: string | null
+  onClick: () => void
+}) {
+  const label = { idle: 'Listen', loading: 'Loading', playing: 'Pause', paused: 'Resume' }[status]
+  const aria = {
+    idle: 'Read this reply aloud',
+    loading: 'Loading audio',
+    playing: 'Pause reading',
+    paused: 'Resume reading',
+  }[status]
+  const Icon = status === 'loading' ? LoaderCircle : status === 'playing' ? Pause : status === 'paused' ? Play : Volume2
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabledReason !== null || status === 'loading'}
+      title={disabledReason ?? undefined}
+      aria-label={aria}
+      className="mt-2 inline-flex items-center gap-1.5 rounded-full border-2 border-line px-2.5 py-0.5 text-xs font-semibold text-muted transition-colors hover:border-ink hover:text-fg disabled:opacity-50 disabled:hover:border-line"
+    >
+      <Icon className={cn('size-3.5', status === 'loading' && 'animate-spin')} aria-hidden />
+      {label}
+    </button>
   )
 }
 
@@ -79,6 +122,12 @@ export function Classroom({
     inputRef.current?.focus()
   })
   const recording = dictation.status === 'recording'
+
+  const player = useSpeechPlayer()
+  const voiceSettings = useVoiceSettings()
+  const readAloudBlocked = player.unavailableReason(language)
+  const lastReply = messages.findLast((m) => m.role === 'assistant')
+  const playerActive = player.status !== 'idle'
 
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end', behavior: 'smooth' })
@@ -129,7 +178,19 @@ export function Classroom({
         ) : (
           <ol className="space-y-4" aria-label="Conversation" aria-live="polite" aria-busy={busy}>
             {messages.map((m) => (
-              <Bubble key={m.id} message={m} />
+              <Bubble
+                key={m.id}
+                message={m}
+                listen={
+                  m.role === 'assistant' && (
+                    <ListenButton
+                      status={player.key === m.id ? player.status : 'idle'}
+                      disabledReason={readAloudBlocked}
+                      onClick={() => player.toggle(m.id, m.content, language)}
+                    />
+                  )
+                }
+              />
             ))}
             {streaming !== null && (
               <Bubble
@@ -238,24 +299,67 @@ export function Classroom({
         </div>
         <div
           className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-2/70 px-3 py-2"
-          aria-label="Spoken reply playback (Phase 7)"
+          aria-label="Read-aloud"
           role="group"
         >
-          <Button variant="secondary" size="icon" disabled aria-label="Play reply">
-            <Play className="size-4" aria-hidden />
+          {player.status === 'playing' ? (
+            <Button variant="secondary" size="icon" onClick={player.pause} aria-label="Pause reading">
+              <Pause className="size-4" aria-hidden />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              loading={player.status === 'loading'}
+              disabled={readAloudBlocked !== null || (!lastReply && player.status !== 'paused')}
+              onClick={() =>
+                player.status === 'paused'
+                  ? player.resume()
+                  : lastReply && void player.play(lastReply.id, lastReply.content, language)
+              }
+              aria-label={player.status === 'paused' ? 'Resume reading' : 'Read the latest reply aloud'}
+            >
+              <Play className="size-4" aria-hidden />
+            </Button>
+          )}
+          <Button variant="secondary" size="icon" disabled={!playerActive} onClick={player.stop} aria-label="Stop reading">
+            <Square className="size-4" aria-hidden />
           </Button>
-          <Button variant="secondary" size="icon" disabled aria-label="Pause reply">
-            <Pause className="size-4" aria-hidden />
-          </Button>
-          <div className="h-2 min-w-16 flex-1 rounded-full bg-line" aria-hidden />
-          <Select aria-label="Playback speed" disabled defaultValue="1" className="h-9! w-24! rounded-full!">
-            {['0.75', '1', '1.25', '1.5'].map((s) => (
-              <option key={s} value={s}>
+          <div
+            className="h-2 min-w-16 flex-1 overflow-hidden rounded-full bg-line"
+            role="progressbar"
+            aria-label="Read-aloud progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(player.progress * 100)}
+          >
+            <div className="h-full rounded-full bg-brand-500 transition-[width]" style={{ width: `${player.progress * 100}%` }} />
+          </div>
+          <Select
+            aria-label="Reading speed"
+            value={String(voiceSettings.speed)}
+            onChange={(e) => void voiceSettings.setSpeed(Number(e.target.value))}
+            className="h-9! w-24! rounded-full!"
+          >
+            {SPEECH_SPEEDS.map((s) => (
+              <option key={s} value={String(s)}>
                 {s}×
               </option>
             ))}
           </Select>
-          <span className="text-xs text-muted">Spoken replies: Phase 7</span>
+          <span className="text-xs text-muted" aria-live="polite">
+            {player.error ? (
+              <span role="alert" className="text-[#b42318] dark:text-rose">{player.error}</span>
+            ) : readAloudBlocked ? (
+              readAloudBlocked
+            ) : playerActive && player.parts > 1 ? (
+              `Part ${player.part + 1} of ${player.parts}${player.isMock ? ' · mock voice' : ''}`
+            ) : player.isMock ? (
+              'Mock voice: plays tones, not speech'
+            ) : (
+              'Listen to any reply'
+            )}
+          </span>
         </div>
       </div>
     </Card>

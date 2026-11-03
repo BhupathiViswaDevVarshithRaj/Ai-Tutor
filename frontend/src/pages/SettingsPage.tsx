@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 
@@ -14,7 +15,10 @@ import { Tabs } from '../components/ui/Tabs'
 import { useToast } from '../components/ui/toast-context'
 import { AccountSettings } from '../features/account/AccountSettings'
 import { InterestsEditor } from '../features/account/InterestsEditor'
+import { useSpeechInfo } from '../features/speech/useSpeechInfo'
 import { BackendStatus } from '../features/system/BackendStatus'
+import { getAiInfo } from '../lib/api/tutor'
+import type { SpeechProviderInfo } from '../lib/api/types'
 import { LANGUAGES, LEVELS } from '../lib/learning'
 import type { LanguageCode, Level } from '../lib/learning'
 
@@ -109,7 +113,17 @@ function AppearanceSettings() {
   )
 }
 
+function speechLabel(info: SpeechProviderInfo | undefined): string {
+  if (!info) return 'Checking…'
+  const name = info.provider.charAt(0).toUpperCase() + info.provider.slice(1)
+  if (!info.available) return `${name} (unavailable)`
+  return info.is_mock ? `${name} (placeholder)` : name
+}
+
 function SystemSettings() {
+  const ai = useQuery({ queryKey: ['ai-info'], queryFn: getAiInfo, staleTime: Infinity })
+  const speech = useSpeechInfo()
+  const aiLabel = ai.data ? (ai.data.is_mock ? 'Mock (no API key set)' : ai.data.tutor_model) : ai.isError ? 'Unknown' : 'Checking…'
   return (
     <div className="max-w-md space-y-6">
       <div>
@@ -119,11 +133,15 @@ function SystemSettings() {
       <dl className="space-y-2 text-sm">
         <div className="flex justify-between gap-6">
           <dt className="text-muted">AI tutor model</dt>
-          <dd>Configured in Phase 4</dd>
+          <dd>{aiLabel}</dd>
         </div>
         <div className="flex justify-between gap-6">
-          <dt className="text-muted">Speech provider</dt>
-          <dd>Not configured (Gnani pending)</dd>
+          <dt className="text-muted">Speech recognition</dt>
+          <dd>{speech.isError ? 'Unknown' : speechLabel(speech.data?.stt)}</dd>
+        </div>
+        <div className="flex justify-between gap-6">
+          <dt className="text-muted">Read-aloud</dt>
+          <dd>{speech.isError ? 'Unknown' : speechLabel(speech.data?.tts)}</dd>
         </div>
       </dl>
     </div>

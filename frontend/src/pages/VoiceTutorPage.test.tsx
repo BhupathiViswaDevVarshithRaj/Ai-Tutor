@@ -1,9 +1,18 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AppRoutes } from '../app/AppRoutes'
-import { installFakeMic, jsonResponse, MOCK_SPEECH_INFO, renderWithProviders, signedInApi } from '../test/utils'
+import {
+  audioResponse,
+  installFakeAudio,
+  installFakeMic,
+  jsonResponse,
+  MOCK_SPEECH_INFO,
+  renderWithProviders,
+  signedInApi,
+  TEST_USER,
+} from '../test/utils'
 
 let mic: ReturnType<typeof installFakeMic> | null = null
 afterEach(() => {
@@ -136,5 +145,73 @@ describe('Voice Learning recording', () => {
     renderWithProviders(<AppRoutes />, { route: '/app/voice' })
     expect(await screen.findByText('Voice input is not available right now.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Start speaking' })).toBeDisabled()
+  })
+})
+
+describe('Voice Learning playback settings', () => {
+  it('saves voice and speed to the account and plays a sample with them', async () => {
+    const user = userEvent.setup()
+    const audio = installFakeAudio()
+    let saved = { ...TEST_USER.preferences }
+    const api = signedInApi({
+      'PATCH /users/me/preferences': (c) => {
+        saved = { ...saved, ...(c.body as object) }
+        return jsonResponse(saved)
+      },
+      'POST /speech/synthesize': () => audioResponse(1500, 'mock-calm'),
+    })
+    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
+
+    const voice = await screen.findByRole('combobox', { name: 'Voice' })
+    await waitFor(() => expect(voice).toBeEnabled())
+    await user.selectOptions(voice, 'mock-calm')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Speech speed' }), '0.75')
+    await waitFor(() => expect(api.find('PATCH /users/me/preferences')).toHaveLength(2))
+    expect(api.find('PATCH /users/me/preferences').map((c) => c.body)).toEqual([
+      { tts_voice: 'mock-calm' },
+      { tts_speed: 0.75 },
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Hear a sample' }))
+    expect(await screen.findByRole('button', { name: 'Pause sample' })).toBeInTheDocument()
+    expect(api.find('POST /speech/synthesize')[0].body).toEqual({
+      text: 'Hello! I am your AI tutor. Shall we learn something new today?',
+      language: 'en',
+      voice: 'mock-calm',
+    })
+    expect(audio.current()?.playbackRate).toBe(0.75)
+    act(() => audio.finish())
+    expect(await screen.findByRole('button', { name: 'Hear a sample' })).toBeInTheDocument()
+  })
+
+  it('restores the previous setting when saving fails', async () => {
+    const user = userEvent.setup()
+    signedInApi({
+      'PATCH /users/me/preferences': () => jsonResponse({ detail: 'Server error' }, 500),
+    })
+    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
+
+    const speed = await screen.findByRole('combobox', { name: 'Speech speed' })
+    await user.selectOptions(speed, '2')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Server error')
+    expect(speed).toHaveValue('1')
+  })
+
+  it('reads a transcript back', async () => {
+    const user = userEvent.setup()
+    mic = installFakeMic()
+    installFakeAudio()
+    const api = signedInApi({
+      'POST /speech/transcribe': transcriptOf('hello there'),
+      'POST /speech/synthesize': () => audioResponse(),
+    })
+    renderWithProviders(<AppRoutes />, { route: '/app/voice' })
+
+    await user.click(await readyMic())
+    mic.advance(1500)
+    await user.click(await screen.findByRole('button', { name: 'Stop recording' }))
+    await user.click(await screen.findByRole('button', { name: 'Listen recording 1 read aloud' }))
+    await waitFor(() => expect(api.find('POST /speech/synthesize')).toHaveLength(1))
+    expect((api.find('POST /speech/synthesize')[0].body as { text: string }).text).toBe('hello there.')
   })
 })

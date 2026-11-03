@@ -4,6 +4,12 @@ from typing import Annotated, Generic, Literal, TypeVar
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
 LanguageCode = Literal["en", "hi", "te", "ta", "pa", "bn"]
+# Languages taught as world-language courses (Phase 9).
+CourseLanguage = Literal["de", "fr", "es", "ja", "ko", "zh", "it", "pt"]
+# Any language a conversation, message or speech request can be in.
+AnyLanguage = Literal[
+    "en", "hi", "te", "ta", "pa", "bn", "de", "fr", "es", "ja", "ko", "zh", "it", "pt"
+]
 
 
 def _password_policy(value: str) -> str:

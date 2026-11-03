@@ -13,6 +13,8 @@ pytestmark = pytest.mark.integration
 
 WAV = encode_wav(array("h", bytes(2 * 16 * 500)))  # 500 ms of silence
 WEBM = b"\x1a\x45\xdf\xa3" + bytes(200)
+TUTOR = ["en", "hi", "te", "ta", "pa", "bn"]
+COURSES = ["de", "fr", "es", "ja", "ko", "zh", "it", "pt"]
 
 
 @pytest.fixture
@@ -45,10 +47,13 @@ async def test_info_reports_mock_providers_and_language_matrix(api):
         "is_mock": True,
         "available": True,
         "unavailable_reason": None,
-        "languages": ["bn", "en", "hi", "pa", "ta", "te"],
+        "languages": sorted(TUTOR + COURSES),
     }
     assert [v["id"] for v in body["tts"]["voices"]] == ["mock-bright", "mock-calm"]
-    assert [lang["code"] for lang in body["languages"]] == ["en", "hi", "te", "ta", "pa", "bn"]
+    # Tutor languages first, then the world-language courses (practice only).
+    assert [lang["code"] for lang in body["languages"]] == TUTOR + COURSES
+    assert [lang["code"] for lang in body["languages"] if lang["tutor"]] == TUTOR
+    assert next(lang for lang in body["languages"] if lang["code"] == "zh")["name"] == "Chinese"
     assert all(lang["stt"] and lang["tts"] for lang in body["languages"])
     assert body["limits"]["max_tts_chars"] == 2000
     assert "audio/webm" in body["limits"]["audio_types"]
@@ -101,7 +106,7 @@ async def test_transcribe_rejects_oversized_audio(api, monkeypatch):
 
 async def test_transcribe_rejects_unknown_language(api):
     headers = await register_user(api)
-    resp = await transcribe(api, headers, WAV, "audio/wav", language="fr")
+    resp = await transcribe(api, headers, WAV, "audio/wav", language="sw")
     assert resp.status_code == 422
 
 
@@ -131,7 +136,7 @@ async def test_synthesize_returns_wav_with_metadata(api):
     [
         {"text": "", "language": "en"},
         {"text": "   ", "language": "en"},
-        {"text": "hi", "language": "fr"},
+        {"text": "hi", "language": "sw"},
         {"text": "hi", "language": "en", "speed": 3},
         {"text": "hi", "language": "en", "voice": "v" * 101},
     ],

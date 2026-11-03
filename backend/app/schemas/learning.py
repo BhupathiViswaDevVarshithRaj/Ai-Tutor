@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, Field, StringConstraints
 
 from app.db.enums import ConversationMode, InputMode, LearningLevel, LessonStatus, MessageRole
-from app.schemas.common import LanguageCode, ORMModel
+from app.schemas.common import AnyLanguage, LanguageCode, ORMModel
 
 Topic = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -52,7 +52,7 @@ class ConversationOut(ORMModel):
     lesson_id: uuid.UUID | None
     title: str
     mode: ConversationMode
-    language: LanguageCode
+    language: AnyLanguage  # course role-plays use the course language
     level: LearningLevel
     created_at: datetime
     updated_at: datetime
@@ -67,7 +67,7 @@ class MessageOut(ORMModel):
     id: uuid.UUID
     role: MessageRole
     content: str
-    language: LanguageCode
+    language: AnyLanguage
     input_mode: InputMode
     created_at: datetime
 

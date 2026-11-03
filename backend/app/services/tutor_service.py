@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.course_prompts import roleplay_system_prompt
 from app.ai.llm.base import ChatMessage, LLMError, LLMProvider, StreamDone, TextDelta
 from app.ai.prompts import (
     PLANNER_SYSTEM,
@@ -20,8 +21,8 @@ from app.ai.prompts import (
 from app.ai.schemas import LessonPlan, LessonSummary, validate_plan, validate_summary
 from app.core.config import get_settings
 from app.core.errors import AppError
-from app.db.enums import ConversationMode, MessageRole
-from app.db.models import Conversation, Lesson, Message, User
+from app.db.enums import ConversationMode, MessageRole, PracticeSkill
+from app.db.models import Conversation, Lesson, Message, PracticeSession, User
 from app.db.session import session_scope
 from app.schemas.learning import MessageOut
 from app.schemas.tutor import LessonGenerate, TutorMessageIn
@@ -128,14 +129,30 @@ async def prepare_turn(
     while history and history[0].role != "user":  # the API requires a user turn first
         history.pop(0)
 
-    system = tutor_system_prompt(
-        level=conversation.level,
-        language=conversation.language,
-        interests=user.preferences.interests,
-        topic=lesson.topic if lesson else None,
-        plan=lesson.plan if lesson else None,
-        spoken=conversation.mode == ConversationMode.VOICE,
+    spoken = conversation.mode == ConversationMode.VOICE
+    roleplay = await session.scalar(
+        select(PracticeSession).where(
+            PracticeSession.conversation_id == conversation.id,
+            PracticeSession.skill == PracticeSkill.CONVERSATION,
+        )
     )
+    if roleplay is not None:
+        system = roleplay_system_prompt(
+            language=roleplay.language,
+            level=roleplay.level,
+            scenario=roleplay.content.get("scenario", ""),
+            interests=user.preferences.interests,
+            spoken=spoken,
+        )
+    else:
+        system = tutor_system_prompt(
+            level=conversation.level,
+            language=conversation.language,
+            interests=user.preferences.interests,
+            topic=lesson.topic if lesson else None,
+            plan=lesson.plan if lesson else None,
+            spoken=spoken,
+        )
     return PreparedTurn(
         conversation_id=conversation.id,
         user_id=user.id,

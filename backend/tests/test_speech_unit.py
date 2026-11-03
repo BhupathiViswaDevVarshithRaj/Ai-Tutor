@@ -65,7 +65,7 @@ async def test_mock_stt_returns_labelled_placeholder_with_duration():
 
 async def test_mock_stt_rejects_unknown_language():
     with pytest.raises(UnsupportedLanguage):
-        await MockSTTProvider().transcribe(silent_wav(10), mime_type="audio/wav", language="fr")
+        await MockSTTProvider().transcribe(silent_wav(10), mime_type="audio/wav", language="sw")
 
 
 async def test_mock_tts_produces_valid_wav_of_realistic_length():
@@ -137,7 +137,15 @@ def test_gnani_info_marks_every_language_unsupported():
     info = speech_info(stt, tts, gnani_settings())
     assert info.stt.available is False and info.tts.available is False
     assert info.tts.voices == []
-    assert all(not lang.stt and not lang.tts and lang.tutor for lang in info.languages)
+    assert all(not lang.stt and not lang.tts for lang in info.languages)
+    assert [lang.code for lang in info.languages if lang.tutor] == [
+        "en",
+        "hi",
+        "te",
+        "ta",
+        "pa",
+        "bn",
+    ]
 
 
 # --- provider selection ------------------------------------------------------

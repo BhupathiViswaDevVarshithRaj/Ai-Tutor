@@ -3,7 +3,11 @@
 from app.ai.speech.audio import blips, sniff_container, wav_duration_ms
 from app.ai.speech.base import AudioResult, Transcript, UnsupportedLanguage, Voice
 
-MOCK_LANGUAGES = ("en", "hi", "te", "ta", "pa", "bn")
+# The mock is language-agnostic (placeholder text, tones): it covers tutor and course languages.
+MOCK_LANGUAGES = (
+    *("en", "hi", "te", "ta", "pa", "bn"),
+    *("de", "fr", "es", "ja", "ko", "zh", "it", "pt"),
+)
 MOCK_TRANSCRIPT = (
     "[Mock transcript] Speech recognition is not connected yet, "
     "so this text is a placeholder, not what you said."

@@ -1,6 +1,16 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, conversations, health, lessons, speech, tutor, users, voice
+from app.api.v1 import (
+    auth,
+    conversations,
+    health,
+    languages,
+    lessons,
+    speech,
+    tutor,
+    users,
+    voice,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -11,3 +21,4 @@ api_router.include_router(conversations.router)
 api_router.include_router(tutor.router)
 api_router.include_router(speech.router)
 api_router.include_router(voice.router)
+api_router.include_router(languages.router)

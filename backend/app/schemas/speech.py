@@ -2,13 +2,13 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from app.schemas.common import LanguageCode
+from app.schemas.common import AnyLanguage
 
 
 class SynthesizeIn(BaseModel):
     # The configured maximum (SPEECH_MAX_TTS_CHARS) is enforced in the service.
     text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)]
-    language: LanguageCode
+    language: AnyLanguage
     voice: Annotated[str, StringConstraints(max_length=100)] | None = None
     speed: Annotated[float, Field(ge=0.5, le=2.0)] = 1.0
 

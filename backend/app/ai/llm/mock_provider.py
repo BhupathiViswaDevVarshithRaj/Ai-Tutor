@@ -4,6 +4,18 @@ import asyncio
 import re
 from collections.abc import AsyncIterator
 
+from app.ai.course_schemas import (
+    Example,
+    Exercise,
+    GrammarLesson,
+    Passage,
+    Phrase,
+    SpeakingSet,
+    VocabList,
+    VocabWord,
+    WritingFeedback,
+    WritingTask,
+)
 from app.ai.llm.base import (
     ChatMessage,
     LLMError,
@@ -121,6 +133,88 @@ class MockLLMProvider:
                 key_points=[f"You started learning {topic}."],
                 next_steps=["Add an ANTHROPIC_API_KEY to get real summaries."],
             )
+        elif (course := _mock_course_content(schema, prompt, topic)) is not None:
+            value = course
         else:
             raise LLMError("The mock provider can't produce this output.", retryable=False)
         return ParseResult(value=value, model=MOCK_MODEL)  # type: ignore[arg-type]
+
+
+def _mock_choice(n: int) -> Exercise:
+    return Exercise(
+        kind="choice",
+        prompt=f"[mock] Question {n}: which option is correct?",
+        options=["correct", "wrong", "also wrong"],
+        answer="correct",
+        explanation="Mock exercise: the right option is always 'correct'.",
+    )
+
+
+def _mock_course_content(schema: type, prompt: str, topic: str):
+    """Placeholder course material, clearly marked as mock, for keyless development."""
+    if schema is VocabList:
+        # Number new words after the known ones so repeated requests add new cards.
+        known = _field(prompt, "Already known", "")
+        start = 0 if known in ("", "(none yet)") else len(known.split(", "))
+        return VocabList(
+            words=[
+                VocabWord(
+                    word=f"[mock] word {start + i}",
+                    reading="",
+                    meaning=f"mock meaning {start + i}",
+                    example=f"[mock] An example with word {start + i}.",
+                    example_translation="Mock example translation.",
+                )
+                for i in range(1, 9)
+            ]
+        )
+    if schema is GrammarLesson:
+        return GrammarLesson(
+            title="[mock] A grammar point",
+            explanation=f"{MOCK_NOTICE}\n\nA real lesson would explain one grammar point.",
+            examples=[Example(text="[mock] Example sentence.", translation="Mock translation.")],
+            exercises=[
+                _mock_choice(1),
+                Exercise(
+                    kind="fill",
+                    prompt="[mock] Fill the gap: I ___ a student.",
+                    options=[],
+                    answer="am|'m",
+                    explanation="Mock exercise: 'am' (or 'm) fills the gap.",
+                ),
+                _mock_choice(2),
+            ],
+        )
+    if schema is Passage:
+        return Passage(
+            title=f"[mock] {topic}",
+            text="[mock] Anna: Hello! Ben: Hi Anna, how are you? Anna: Very well, thank you.",
+            translation="Mock translation of the text.",
+            questions=[_mock_choice(1), _mock_choice(2)],
+        )
+    if schema is WritingTask:
+        return WritingTask(
+            title="[mock] Write a short message",
+            instructions="Mock task: write a few sentences about your day.",
+            min_words=20,
+            max_words=60,
+            useful_phrases=[Example(text="[mock] phrase", translation="mock phrase")],
+        )
+    if schema is WritingFeedback:
+        text = prompt.split("Learner's text:\n", 1)[-1].strip()
+        return WritingFeedback(
+            corrected_text=text,
+            corrections=[],
+            strengths=["Mock feedback: you submitted some text."],
+            score=50,
+            summary="Mock feedback. Add an ANTHROPIC_API_KEY for real corrections.",
+        )
+    if schema is SpeakingSet:
+        return SpeakingSet(
+            title=f"[mock] {topic}",
+            phrases=[
+                Phrase(text=f"[mock] phrase {i}", reading="", translation=f"mock phrase {i}")
+                for i in range(1, 4)
+            ],
+        )
+    return None

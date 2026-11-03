@@ -1,0 +1,33 @@
+{
+  "description": "Per-language checks for tutor replies (6 tutor languages, 3 levels each) and course role-plays (8 course languages). Checks are deterministic: the reply is mostly in the language's native script, is not empty, and tutor replies include an understanding-check question.",
+  "tutor": [
+    {"id": "en-beginner", "language": "en", "level": "beginner", "topic": "Photosynthesis", "question": "How do plants make their food?"},
+    {"id": "en-intermediate", "language": "en", "level": "intermediate", "topic": "Fractions", "question": "Why do we need a common denominator to add fractions?"},
+    {"id": "en-advanced", "language": "en", "level": "advanced", "topic": "Recursion", "question": "When does recursion beat iteration, and when is it worse?"},
+    {"id": "hi-beginner", "language": "hi", "level": "beginner", "topic": "Photosynthesis", "question": "How do plants make their food?"},
+    {"id": "hi-intermediate", "language": "hi", "level": "intermediate", "topic": "Fractions", "question": "Why do we need a common denominator to add fractions?"},
+    {"id": "hi-advanced", "language": "hi", "level": "advanced", "topic": "Newton's laws", "question": "Explain the difference between mass and weight."},
+    {"id": "te-beginner", "language": "te", "level": "beginner", "topic": "The water cycle", "question": "Where does rain come from?"},
+    {"id": "te-intermediate", "language": "te", "level": "intermediate", "topic": "Fractions", "question": "Why do we need a common denominator to add fractions?"},
+    {"id": "te-advanced", "language": "te", "level": "advanced", "topic": "Electric circuits", "question": "Why does current split in a parallel circuit?"},
+    {"id": "ta-beginner", "language": "ta", "level": "beginner", "topic": "The water cycle", "question": "Where does rain come from?"},
+    {"id": "ta-intermediate", "language": "ta", "level": "intermediate", "topic": "Percentages", "question": "How do I find 15% of a number quickly?"},
+    {"id": "ta-advanced", "language": "ta", "level": "advanced", "topic": "Electric circuits", "question": "Why does current split in a parallel circuit?"},
+    {"id": "pa-beginner", "language": "pa", "level": "beginner", "topic": "Photosynthesis", "question": "How do plants make their food?"},
+    {"id": "pa-intermediate", "language": "pa", "level": "intermediate", "topic": "Percentages", "question": "How do I find 15% of a number quickly?"},
+    {"id": "pa-advanced", "language": "pa", "level": "advanced", "topic": "Newton's laws", "question": "Explain the difference between mass and weight."},
+    {"id": "bn-beginner", "language": "bn", "level": "beginner", "topic": "The water cycle", "question": "Where does rain come from?"},
+    {"id": "bn-intermediate", "language": "bn", "level": "intermediate", "topic": "Fractions", "question": "Why do we need a common denominator to add fractions?"},
+    {"id": "bn-advanced", "language": "bn", "level": "advanced", "topic": "Recursion", "question": "When does recursion beat iteration, and when is it worse?"}
+  ],
+  "roleplay": [
+    {"id": "de-cafe", "language": "de", "level": "A2", "scenario": "Ordering at a café", "message": "Hallo! Einen Kaffee, bitte."},
+    {"id": "fr-directions", "language": "fr", "level": "A2", "scenario": "Asking for directions in a city", "message": "Bonjour, où est la gare ?"},
+    {"id": "es-shopping", "language": "es", "level": "A2", "scenario": "Buying clothes in a shop", "message": "Hola, busco una camiseta."},
+    {"id": "ja-introductions", "language": "ja", "level": "A1", "scenario": "Introducing yourself to a new classmate", "message": "こんにちは！"},
+    {"id": "ko-restaurant", "language": "ko", "level": "A1", "scenario": "Ordering food at a restaurant", "message": "안녕하세요!"},
+    {"id": "zh-market", "language": "zh", "level": "A1", "scenario": "Buying fruit at a market", "message": "你好！"},
+    {"id": "it-hotel", "language": "it", "level": "B1", "scenario": "Checking in at a hotel", "message": "Buongiorno, ho una prenotazione."},
+    {"id": "pt-weekend", "language": "pt", "level": "B1", "scenario": "Talking about weekend plans with a friend", "message": "Olá! O que vais fazer no fim de semana?"}
+  ]
+}

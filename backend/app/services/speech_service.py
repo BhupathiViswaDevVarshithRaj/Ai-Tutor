@@ -2,6 +2,7 @@
 
 from fastapi import Request
 
+from app.ai.course_prompts import COURSE_LANGUAGE_NAMES
 from app.ai.prompts import LANGUAGE_NAMES
 from app.ai.speech.audio import ACCEPTED_AUDIO_TYPES, base_mime, sniff_container
 from app.ai.speech.base import (
@@ -52,9 +53,13 @@ def speech_info(stt: STTProvider, tts: TTSProvider, settings: Settings) -> Speec
         ),
         languages=[
             LanguageSupport(
-                code=code, name=name, tutor=True, stt=code in stt_langs, tts=code in tts_langs
+                code=code,
+                name=name.split(" (")[0],
+                tutor=code in LANGUAGE_NAMES,
+                stt=code in stt_langs,
+                tts=code in tts_langs,
             )
-            for code, name in LANGUAGE_NAMES.items()
+            for code, name in (LANGUAGE_NAMES | COURSE_LANGUAGE_NAMES).items()
         ],
         limits=SpeechLimits(
             max_audio_bytes=settings.speech_max_audio_bytes,

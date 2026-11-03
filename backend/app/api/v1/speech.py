@@ -9,7 +9,7 @@ from app.ai.speech.factory import get_stt, get_tts
 from app.api.deps import CurrentUser
 from app.core.config import get_settings
 from app.core.rate_limit import RateLimiter
-from app.schemas.common import LanguageCode
+from app.schemas.common import AnyLanguage
 from app.schemas.speech import SpeechInfo, SynthesizeIn, TranscriptOut
 from app.services import speech_service
 
@@ -41,7 +41,7 @@ async def info(_: CurrentUser, stt: STT, tts: TTS) -> SpeechInfo:
 
 @router.post("/transcribe", dependencies=SPEECH_LIMIT, openapi_extra=_AUDIO_BODY)
 async def transcribe(
-    request: Request, _: CurrentUser, stt: STT, language: Annotated[LanguageCode, Query()]
+    request: Request, _: CurrentUser, stt: STT, language: Annotated[AnyLanguage, Query()]
 ) -> TranscriptOut:
     """Transcribe a recording sent as the raw request body (Content-Type: audio/...)."""
     transcript = await speech_service.transcribe(stt, request, language, get_settings())

@@ -32,6 +32,7 @@ def scene(template="bullets", heading="Heading", narration="Some narration.", **
         x_max=1,
         shape="",
         atoms=[],
+        image_query="",
         caption="",
         narration=narration,
     )

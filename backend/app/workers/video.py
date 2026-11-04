@@ -12,6 +12,7 @@ from app.core.logging import configure_logging
 from app.core.redis import close_redis
 from app.db.session import dispose_engine
 from app.services.video_service import VIDEO_QUEUE
+from app.video.images import WikimediaImages
 from app.video.pipeline import VideoDeps, run_video_job
 from app.video.render import FFmpegCompositor, ManimRenderer
 from app.video.storage import get_storage
@@ -28,6 +29,7 @@ async def startup(ctx: dict) -> None:
         renderer=ManimRenderer(settings.video_quality),
         compositor=FFmpegCompositor(settings.video_quality),
         storage=get_storage(),
+        images=WikimediaImages(settings),
     )
     logger.info(
         "video worker ready (quality=%s, media=%s)", settings.video_quality, settings.media_root

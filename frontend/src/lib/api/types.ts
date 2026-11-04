@@ -341,6 +341,8 @@ export type VideoJob = {
   /** False: silent with subtitles (no real voice configured yet). */
   narrated: boolean
   scene_count: number
+  /** Pictures from Wikimedia Commons shown in the video, with their required attribution. */
+  image_credits: { scene: number; title: string; credit: string; source_url: string }[]
   duration_ms: number | null
   video_url: string | null
   subtitles_url: string | null

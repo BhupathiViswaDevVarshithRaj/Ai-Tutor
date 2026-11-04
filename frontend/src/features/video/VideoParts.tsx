@@ -116,6 +116,21 @@ export function VideoPlayer({ job }: { job: VideoJob }) {
           <Download className="size-4" aria-hidden /> Download
         </a>
       </div>
+      {job.image_credits.length > 0 && (
+        <details className="text-sm">
+          <summary className="cursor-pointer font-semibold">Picture credits ({job.image_credits.length})</summary>
+          <ul className="mt-2 space-y-1 text-muted">
+            {job.image_credits.map((c) => (
+              <li key={c.scene} className="break-words">
+                {c.credit} –{' '}
+                <a href={c.source_url} target="_blank" rel="noreferrer noopener" className="underline">
+                  {c.title.replace(/^File:/, '')}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   )
 }

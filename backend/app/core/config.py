@@ -99,6 +99,9 @@ class Settings(BaseSettings):
     video_job_timeout_seconds: int = 1200
     video_rate_limit: int = 5
     video_rate_window_seconds: int = 3600
+    # Contact details sent in the User-Agent to Wikimedia Commons (their policy requires a
+    # website or email); used when videos fetch real pictures.
+    media_contact: str = "https://github.com/BhupathiViswaDevVarshithRaj/Ai-Tutor"
     # Signed links for <video>/<track> elements, which can't send an Authorization header.
     media_url_ttl_seconds: int = 3600
 

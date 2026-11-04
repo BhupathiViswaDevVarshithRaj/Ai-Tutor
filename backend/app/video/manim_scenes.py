@@ -30,7 +30,9 @@ from manim import (
     DashedLine,
     Dot,
     FadeIn,
+    Group,
     GrowArrow,
+    ImageMobject,
     Line,
     Line3D,
     Octahedron,
@@ -129,6 +131,46 @@ class TemplateScene(Scene):
         return 0.8 + step * len(rows)
 
     _summary = _bullets
+
+    def _image(self, spec, font, total) -> float:
+        """A real picture (downloaded by the pipeline) with its facts and credit line."""
+        heading = self._heading(spec, font)
+        facts = spec["items"]
+        picture = ImageMobject(spec["image"])
+        width, height = (6.6, 4.9) if facts else (11.6, 5.1)
+        picture.scale_to_fit_width(width)
+        if picture.height > height:
+            picture.scale_to_fit_height(height)
+        border = RoundedRectangle(
+            corner_radius=0.15,
+            width=picture.width + 0.16,
+            height=picture.height + 0.16,
+            stroke_color=INK,
+            stroke_width=4,
+        )
+        credit = _fit(_text(spec.get("credit") or "", font, 15, 110, color=MUTED), height=0.4)
+        credit.to_edge(DOWN, buff=0.12)
+        # Centred in the space between the heading and the credit line; with facts, in the
+        # left half (the facts take the right half).
+        middle = (heading.get_bottom()[1] - 0.3 + credit.get_top()[1] + 0.1) / 2
+        framed = Group(picture, border).move_to([-3.4 if facts else 0, middle, 0])
+        self.play(FadeIn(picture, scale=0.96), Create(border), FadeIn(credit), run_time=1.0)
+        # A slow push-in keeps a still picture alive (about 6% over 15 s).
+        framed.add_updater(lambda m, dt: m.scale(1 + 0.004 * dt))
+        used = 1.8
+        if facts:
+            rows = Group()
+            for i, item in enumerate(facts):
+                dot = Dot(radius=0.09, color=ACCENTS[(i + 1) % len(ACCENTS)])
+                label = _text(item, font, 26, 22)
+                rows.add(VGroup(dot, label.next_to(dot, RIGHT, buff=0.25)))
+            rows.arrange(DOWN, aligned_edge=LEFT, buff=0.42)
+            _fit(rows, width=5.0, height=4.6).move_to([3.7, middle, 0])
+            step = min(1.0, max(0.4, total * 0.5 / len(rows)))
+            for row in rows:
+                self.play(FadeIn(row, shift=LEFT * 0.2), run_time=step)
+            used += step * len(rows)
+        return used
 
     def _flow(self, spec, font, total) -> float:
         heading = self._heading(spec, font)

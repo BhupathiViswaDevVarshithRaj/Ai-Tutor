@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from app.video.images import FoundImage
 from app.video.pipeline import RenderError
 from app.video.script import Scene
 
@@ -47,7 +48,13 @@ class ManimRenderer:
         self.quality = quality
 
     def render(
-        self, scene: Scene, seconds: float, index: int, workdir: Path, language: str
+        self,
+        scene: Scene,
+        seconds: float,
+        index: int,
+        workdir: Path,
+        language: str,
+        image: FoundImage | None = None,
     ) -> Path:
         spec = workdir / f"scene{index}.json"
         spec.write_text(
@@ -56,6 +63,8 @@ class ManimRenderer:
                     **scene.model_dump(),
                     "seconds": seconds,
                     "font": FONTS.get(language, "Noto Sans"),
+                    "image": str(image.path) if image else None,
+                    "credit": image.credit if image else "",
                 },
                 ensure_ascii=False,
             ),

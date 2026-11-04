@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select, update
 
-from app.ai.llm.base import LLMRefusal
+from app.ai.llm.base import LLMRefusal, ParseResult
 from app.ai.llm.mock_provider import MockLLMProvider
 from app.ai.speech.base import AudioResult
 from app.ai.speech.mock import MockTTSProvider
@@ -17,7 +17,9 @@ from app.db.enums import VideoStatus
 from app.db.models import MediaAsset, VideoJob
 from app.db.session import session_scope
 from app.services.video_service import get_video_queue
+from app.video.images import FoundImage
 from app.video.pipeline import RenderError, VideoDeps, run_video_job
+from app.video.script import Scene, VideoScript
 from app.video.storage import get_storage
 from tests.conftest import API, register_user
 
@@ -44,10 +46,13 @@ class FakeRenderer:
 
     def __init__(self, on_render=None, fail_at: int | None = None) -> None:
         self.calls: list[tuple[str, float, str]] = []
+        self.images: dict[int, object] = {}
         self.on_render = on_render
         self.fail_at = fail_at
 
-    def render(self, scene, seconds, index, workdir: Path, language):
+    def render(self, scene, seconds, index, workdir: Path, language, image=None):
+        if image:
+            self.images[index] = image
         if self.on_render:
             self.on_render(index)
         if index == self.fail_at:
@@ -91,13 +96,14 @@ def queue(app):
     return fake
 
 
-def deps(renderer=None, tts=None, llm=None):
+def deps(renderer=None, tts=None, llm=None, images=None):
     return VideoDeps(
         llm=llm or MockLLMProvider(),
         tts=tts or MockTTSProvider(),
         renderer=renderer or FakeRenderer(),
         compositor=FakeCompositor(),
         storage=get_storage(),
+        images=images,
     )
 
 
@@ -288,3 +294,88 @@ async def test_videos_are_private(api, queue):
     assert (await api.post(f"{url}/cancel", headers=other)).status_code == 404
     assert (await api.delete(url, headers=other)).status_code == 404
     assert (await api.get(V, headers=other)).json() == []
+
+
+# --- pictures -------------------------------------------------------------------------
+
+
+def picture_scene(heading, query, items):
+    return Scene(
+        template="image",
+        heading=heading,
+        items=items,
+        dates=[],
+        expression="",
+        x_min=0,
+        x_max=1,
+        shape="",
+        atoms=[],
+        image_query=query,
+        caption="",
+        narration=f"About {heading}.",
+    )
+
+
+class ScriptLLM(MockLLMProvider):
+    """Writes a fixed script with two picture scenes."""
+
+    async def parse(self, *, system, messages, schema, role="structured"):
+        script = VideoScript(
+            title="The AK-47",
+            scenes=[
+                picture_scene("The rifle", "AK-47 rifle", ["Designed in 1947", "Gas-operated"]),
+                picture_scene("Its inventor", "nothing matches this", ["Kalashnikov", "Engineer"]),
+                picture_scene("A detail", "no result either", []),
+            ],
+        )
+        return ParseResult(value=script, model="test")
+
+
+class FakeImages:
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    async def find(self, query, dest):
+        self.queries.append(query)
+        if query != "AK-47 rifle":
+            return None
+        dest.write_bytes(b"png")
+        return FoundImage(
+            path=dest,
+            title="File:AK-47 assault rifle.jpg",
+            credit="Image: Ickybicky · Public domain · Wikimedia Commons",
+            source_url="https://commons.wikimedia.org/wiki/File:AK-47_assault_rifle.jpg",
+        )
+
+
+async def test_picture_scenes_get_real_pictures_or_fall_back_to_text(api, queue):
+    headers = await register_user(api)
+    job = await create(api, headers)
+    renderer, images = FakeRenderer(), FakeImages()
+    await run_video_job(uuid.UUID(job["id"]), deps(renderer, llm=ScriptLLM(), images=images))
+
+    done = (await api.get(f"{V}/{job['id']}", headers=headers)).json()
+    assert done["status"] == "completed", done
+    assert images.queries == ["AK-47 rifle", "nothing matches this", "no result either"]
+    # Scene 0 is the title card; the found picture goes to scene 1. Without a picture, a scene
+    # with facts becomes bullets and one without becomes a plain card.
+    assert [t for t, _, _ in renderer.calls] == ["title", "image", "bullets", "title"]
+    assert list(renderer.images) == [1]
+    assert done["image_credits"] == [
+        {
+            "scene": 1,
+            "title": "File:AK-47 assault rifle.jpg",
+            "credit": "Image: Ickybicky · Public domain · Wikimedia Commons",
+            "source_url": "https://commons.wikimedia.org/wiki/File:AK-47_assault_rifle.jpg",
+        }
+    ]
+
+
+async def test_without_a_picture_finder_picture_scenes_become_text(api, queue):
+    headers = await register_user(api)
+    job = await create(api, headers)
+    renderer = FakeRenderer()
+    await run_video_job(uuid.UUID(job["id"]), deps(renderer, llm=ScriptLLM()))
+    done = (await api.get(f"{V}/{job['id']}", headers=headers)).json()
+    assert [t for t, _, _ in renderer.calls] == ["title", "bullets", "bullets", "title"]
+    assert done["image_credits"] == []

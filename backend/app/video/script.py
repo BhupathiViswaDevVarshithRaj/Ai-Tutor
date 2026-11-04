@@ -23,6 +23,7 @@ Template = Literal[
     "model3d",
     "molecule3d",
     "surface3d",
+    "image",
 ]
 
 # model3d: the solids the renderer can build (and label with their measurements).
@@ -53,6 +54,8 @@ ELEMENT = re.compile(r"^[A-Z][a-z]?$")
 
 MIN_SCENES, MAX_SCENES = 3, 8
 MAX_3D_SCENES = 2
+MAX_IMAGE_SCENES = 3  # each needs a picture search and download
+QUERY_CHARS = 80
 ITEM_CHARS = 60
 HEADING_CHARS = 70
 NARRATION_CHARS = 450
@@ -70,6 +73,7 @@ class Scene(BaseModel):
     x_max: float
     shape: str  # model3d: one of SOLIDS; molecule3d: one of GEOMETRIES
     atoms: list[str]  # molecule3d: central atom first, then the outer atoms (symbols)
+    image_query: str  # image: what to search Wikimedia Commons for (in English)
     caption: str
     narration: str  # what the narrator says during this scene
 
@@ -106,11 +110,12 @@ def _scene(s: Scene) -> Scene | None:
         "model3d": 4,
         "molecule3d": 4,
         "surface3d": 3,
+        "image": 4,
     }.get(s.template, 0)
     items = [i for i in (_clean(x, ITEM_CHARS) for x in s.items[:limit]) if i]
     dates: list[str] = []
     expression, x_min, x_max = "", 0.0, 1.0
-    shape, atoms = "", []
+    shape, atoms, image_query = "", [], ""
     if s.template in ("bullets", "flow", "summary") and len(items) < 2:
         return None
     if s.template == "timeline":
@@ -147,6 +152,10 @@ def _scene(s: Scene) -> Scene | None:
             or not all(ELEMENT.match(a) for a in atoms)
         ):
             return None
+    if s.template == "image":
+        image_query = _clean(s.image_query, QUERY_CHARS)
+        if not image_query:
+            return None
     return Scene(
         template=s.template,
         heading=heading,
@@ -157,6 +166,7 @@ def _scene(s: Scene) -> Scene | None:
         x_max=x_max,
         shape=shape,
         atoms=atoms,
+        image_query=image_query,
         caption=_clean(s.caption, 120),
         narration=narration,
     )
@@ -167,7 +177,9 @@ def validate_script(script: VideoScript, topic: str) -> VideoScript:
     scenes = [s for s in (_scene(x) for x in script.scenes[:MAX_SCENES]) if s]
     # 3D scenes take ~1-1.5 min each to render at 720p: keep the first MAX_3D_SCENES.
     three_d = [i for i, s in enumerate(scenes) if s.template.endswith("3d")]
-    scenes = [s for i, s in enumerate(scenes) if i not in three_d[MAX_3D_SCENES:]]
+    pictures = [i for i, s in enumerate(scenes) if s.template == "image"]
+    extra = set(three_d[MAX_3D_SCENES:]) | set(pictures[MAX_IMAGE_SCENES:])
+    scenes = [s for i, s in enumerate(scenes) if i not in extra]
     title = _clean(script.title, HEADING_CHARS) or _clean(topic, HEADING_CHARS)
     if scenes and scenes[0].template != "title":
         intro = Scene(
@@ -180,6 +192,7 @@ def validate_script(script: VideoScript, topic: str) -> VideoScript:
             x_max=1,
             shape="",
             atoms=[],
+            image_query="",
             caption="",
             narration=title,
         )
@@ -206,8 +219,8 @@ VIDEO_SYSTEM = (
     "facts shown beside it one by one (e.g. 'Volume = pi*r^2*h', '2 flat faces'). Use it only "
     "when the solid itself is the subject (geometry, or a thing that really is that shape, like "
     "a dice or a can). Never use a solid to stand in for a real object (a machine, tool, "
-    "vehicle, organ, building...): explain such objects with bullets or flow instead. A video "
-    "about one of these solids (its volume, area, faces...) always includes its model3d scene.\n"
+    "vehicle, organ, building...): show such objects with `image` instead. A video about one "
+    "of these solids (its volume, area, faces...) always includes its model3d scene.\n"
     "- molecule3d: a ball-and-stick molecule; `shape` is its VSEPR geometry, one of "
     f"{', '.join(GEOMETRIES)}; `atoms` = element symbols, central atom first, then the outer "
     "atoms (H2O: bent, ['O','H','H']; CH4: tetrahedral, ['C','H','H','H','H']; CO2: linear, "
@@ -215,11 +228,19 @@ VIDEO_SYSTEM = (
     "- surface3d: a 3D graph z = f(x, y); `expression` is a formula in x and y (same rules as "
     "plot, e.g. x^2 - y^2 or sin(x)*cos(y), not z = ...), x_min/x_max the range of both x and "
     "y (e.g. -3 to 3); `items` = up to 3 short notes.\n"
+    "Picture template (a real photo or diagram from Wikimedia Commons, shown with its credit):\n"
+    "- image: for real things the learner should see: machines, tools, devices, vehicles, "
+    "animals, plants, organs, cells, places, buildings, artworks, historical objects, "
+    "people in history. `image_query` = 2-5 English words naming exactly what to show, as a "
+    "museum or encyclopedia would (e.g. 'AK-47 rifle', 'FDM 3D printer', 'human heart "
+    "anatomy', 'compound light microscope'); it is a search, so no sentences. `items` = 2-4 "
+    "short facts about what is shown. Use 1-3 image scenes when the topic is about real "
+    "things; never for abstract ideas.\n"
     "On-screen text is short (items ≤ 8 words). `narration` is what the narrator says during "
     "the scene: natural spoken sentences that explain, not read, the screen. Size the total "
     "narration to the requested length at about 14 characters per second. Write everything in "
     "the requested language at the stated level. Leave fields a template doesn't use empty "
-    "(x range 0 to 1, shape '', atoms [])."
+    "(x range 0 to 1, shape '', atoms [], image_query '')."
 )
 
 

@@ -414,6 +414,7 @@ def _mock_video(topic: str) -> VideoScript:
             x_max=1,
             shape=shape,
             atoms=[],
+            image_query="",
             caption=caption,
             narration=narration,
         )

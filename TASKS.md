@@ -187,5 +187,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] Fixes found on the way: formulas written as `z = …` or with ·/−/², Groq `json_validate_failed` retries, render subprocess importing stale code
 - [x] Tests: script validation, bond angles, formulas; real render in the worker image; live videos through the app
 
+## Extra — Real pictures in Video Studio ✅ (branch `video-3d`)
+- [x] `image` scene: the model writes a search phrase and facts; the worker fetches a real photo from Wikimedia Commons (no key)
+- [x] Safe download (Wikimedia hosts only, size cap, Pillow re-encode), photos before drawings, text fallback, at most 3 per video
+- [x] Credits on screen and under the video (licence requirement); User-Agent per Wikimedia policy
+- [x] Fixed: Manim 0.19 + Pillow 13 hang (worker pinned to Pillow 11); basic solids no longer stand in for real objects
+- [x] Tests: picture search, pipeline fallback/credits, render test with a picture, frontend credits
+
 ## Phase 15 ⏸ — Deployment
 Broken into tasks when the phase starts (needs your choice of host).

@@ -55,7 +55,9 @@ def language_rule(code: str) -> str:
 WRITTEN_FORMAT = (
     "## Format\n"
     "Use Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists for "
-    "steps. Keep a reply under about 300 words unless the learner asks for more."
+    "steps. Keep a reply under about 300 words unless the learner asks for more. "
+    "Write maths as plain text or inline code, e.g. `3x - 7 = 2` or x², never LaTeX "
+    "(no \\( \\), \\[ \\] or $ delimiters): the app does not render it."
 )
 SPOKEN_FORMAT = (
     "## Format\n"

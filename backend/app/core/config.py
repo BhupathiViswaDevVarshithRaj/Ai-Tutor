@@ -48,11 +48,16 @@ class Settings(BaseSettings):
     auth_rate_window_seconds: int = 60
 
     # --- LLM (AI tutor) ---
-    # "auto" uses Anthropic when ANTHROPIC_API_KEY is set, otherwise the labelled mock provider.
-    llm_provider: Literal["auto", "anthropic", "mock"] = "auto"
+    # "auto" uses Anthropic when ANTHROPIC_API_KEY is set, else Groq when GROQ_API_KEY is set,
+    # otherwise the labelled mock provider.
+    llm_provider: Literal["auto", "anthropic", "groq", "mock"] = "auto"
     anthropic_api_key: str = ""
     llm_model_tutor: str = "claude-opus-5-5"
     llm_model_structured: str = "claude-opus-5-5"
+    groq_api_key: str = ""
+    # Structured output needs a model with Groq strict json_schema support.
+    groq_model_tutor: str = "openai/gpt-oss-120b"
+    groq_model_structured: str = "openai/gpt-oss-120b"
     llm_effort_tutor: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
     llm_effort_structured: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
     llm_max_tokens: int = 16000
@@ -68,9 +73,12 @@ class Settings(BaseSettings):
     # --- Speech (STT / TTS) ---
     stt_provider: Literal["mock", "gnani"] = "mock"
     tts_provider: Literal["mock", "gnani"] = "mock"
-    # Gnani placeholders: read only by the disabled adapters, never sent to the frontend.
+    # Gnani (Vachana) credentials: backend only, never sent to the frontend.
     gnani_api_key: str = ""
+    # Empty means the documented default, https://api.vachana.ai.
     gnani_api_base_url: str = ""
+    gnani_tts_model: str = "timbre-v2.5"
+    gnani_timeout_seconds: float = 60.0
     gnani_stt_enabled: bool = False
     gnani_tts_enabled: bool = False
     speech_max_audio_bytes: int = 10 * 1024 * 1024

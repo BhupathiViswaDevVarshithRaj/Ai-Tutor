@@ -4,6 +4,7 @@ import io
 import math
 import wave
 from array import array
+from typing import Any
 
 # Accepted upload types (parameters such as ";codecs=opus" are stripped first) → container.
 ACCEPTED_AUDIO_TYPES: dict[str, str] = {
@@ -38,12 +39,31 @@ def sniff_container(data: bytes) -> str | None:
     return None
 
 
+def _read_wav(data: bytes) -> tuple[Any, bytes]:
+    with wave.open(io.BytesIO(data)) as wav:
+        params = wav.getparams()
+        # Count what is really there: streamed WAVs carry 0xFFFFFFFF as their length.
+        return params, wav.readframes(2**31 - 1)
+
+
 def wav_duration_ms(data: bytes) -> int | None:
     try:
-        with wave.open(io.BytesIO(data)) as wav:
-            return round(wav.getnframes() * 1000 / wav.getframerate())
+        params, frames = _read_wav(data)
+        return round(len(frames) * 1000 / (params.sampwidth * params.nchannels * params.framerate))
     except (wave.Error, EOFError, ZeroDivisionError):
         return None
+
+
+def rewrite_wav(data: bytes) -> bytes:
+    """The same audio with a header that states its real length."""
+    params, frames = _read_wav(data)
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as out:
+        out.setnchannels(params.nchannels)
+        out.setsampwidth(params.sampwidth)
+        out.setframerate(params.framerate)
+        out.writeframes(frames)
+    return buffer.getvalue()
 
 
 def encode_wav(samples: array) -> bytes:
@@ -55,6 +75,47 @@ def encode_wav(samples: array) -> bytes:
         wav.setframerate(SAMPLE_RATE)
         wav.writeframes(samples.tobytes())
     return buffer.getvalue()
+
+
+class AudioDecodeError(Exception):
+    """The upload could not be decoded as audio."""
+
+
+def decode_to_wav(data: bytes) -> bytes:
+    """Decode any container FFmpeg understands (WebM/Opus from browsers) to 16 kHz mono WAV."""
+    import av  # FFmpeg bindings; imported lazily so the video worker doesn't need them
+    from av.audio.resampler import AudioResampler
+
+    pcm = bytearray()
+    try:
+        with av.open(io.BytesIO(data)) as container:
+            if not container.streams.audio:
+                raise AudioDecodeError("no audio stream")
+            resampler = AudioResampler(format="s16", layout="mono", rate=SAMPLE_RATE)
+            frames = [*container.decode(container.streams.audio[0]), None]  # None flushes
+            for frame in frames:
+                for out in resampler.resample(frame):
+                    pcm += bytes(out.planes[0])[: out.samples * 2]
+    except av.error.FFmpegError as exc:
+        raise AudioDecodeError(str(exc)) from exc
+    return encode_wav(array("h", bytes(pcm)))
+
+
+def split_wav(data: bytes, max_ms: int) -> list[bytes]:
+    """Cut a WAV into consecutive pieces of at most `max_ms` (same format as the input)."""
+    params, frames = _read_wav(data)
+    frame_bytes = params.sampwidth * params.nchannels
+    step = max(1, params.framerate * max_ms // 1000) * frame_bytes
+    pieces = []
+    for start in range(0, len(frames), step):
+        buffer = io.BytesIO()
+        with wave.open(buffer, "wb") as out:
+            out.setnchannels(params.nchannels)
+            out.setsampwidth(params.sampwidth)
+            out.setframerate(params.framerate)
+            out.writeframes(frames[start : start + step])
+        pieces.append(buffer.getvalue())
+    return pieces
 
 
 def blips(duration_ms: int, onsets_ms: list[int], *, pitch_hz: float, blip_ms: int = 70) -> bytes:

@@ -160,5 +160,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 13.9 Quizzes and My Progress no longer marked "soon"; the last "Coming in Phase N" placeholders removed
 - [x] 13.10 Tests: backend 271 (12 new), frontend 202 (5 new); real Chromium run: generate → answer → marked 70% (one wrong, one partly right by the mock marker) → progress shows the attempt, active day and revision plan; 1440 px light / 390 px dark, no overflow
 
+## Extra — Groq (AI) + Gnani (speech) ✅ (branch `phase-gnani-groq`)
+- [x] Groq LLM provider (official SDK): streaming chat, strict `json_schema` structured output with Pydantic validation and one retry; `LLM_PROVIDER=groq`, `GROQ_*` settings
+- [x] Real Gnani STT/TTS from docs.gnani.ai: auth header, `/stt/v3`, `/api/v1/tts/inference`, 10 languages, Timbre v2.5 voices
+- [x] WebM/Opus → 16 kHz WAV (PyAV), ≤ 28 s pieces; fixed streamed WAV headers
+- [x] Voice picker shows the current language's voices; tutor prompt avoids LaTeX
+- [x] Tests with stand-in clients (no network): `test_groq_unit.py`, Gnani section of `test_speech_unit.py`; live checks done by hand
+- [x] Video worker rebuilt (Groq scripts, Gnani narration)
+
 ## Phases 14–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

@@ -348,3 +348,94 @@ export type VideoJob = {
   started_at: string | null
   finished_at: string | null
 }
+
+export type QuestionTypes = 'mixed' | 'mcq' | 'short_answer'
+export type QuestionType = 'mcq' | 'short_answer'
+
+export type QuizQuestion = {
+  id: string
+  position: number
+  qtype: QuestionType
+  prompt: string
+  options: string[] | null
+  concept: string
+  difficulty: number
+}
+
+export type QuizAttempt = { id: string; score: number; correct: number; total: number; submitted_at: string }
+
+export type QuizSummary = {
+  id: string
+  lesson_id: string | null
+  title: string
+  topic: string
+  focus: string | null
+  language: LanguageCode
+  level: Level
+  question_count: number
+  attempts: number
+  best_score: number | null
+  last_attempt: QuizAttempt | null
+  created_at: string
+}
+
+export type Quiz = QuizSummary & { question_types: QuestionTypes; questions: QuizQuestion[] }
+
+export type AnswerResult = {
+  question_id: string
+  position: number
+  qtype: QuestionType
+  prompt: string
+  options: string[] | null
+  concept: string
+  answer: string
+  correct_answer: string
+  is_correct: boolean
+  score: number
+  explanation: string
+  feedback: string | null
+  graded_by: 'rule' | 'model'
+}
+
+export type ConceptResult = { concept: string; correct: number; total: number; score: number }
+
+export type Recommendation = {
+  kind: 'revise' | 'advance' | 'retake'
+  concept: string | null
+  text: string
+  lesson_topic: string | null
+  level: Level | null
+}
+
+export type QuizResult = {
+  id: string
+  quiz_id: string
+  score: number
+  correct: number
+  total: number
+  duration_seconds: number | null
+  concepts: ConceptResult[]
+  recommendations: Recommendation[]
+  results: AnswerResult[]
+  submitted_at: string
+}
+
+export type ConceptMastery = {
+  topic: string
+  concept: string
+  mastery: number
+  evidence_count: number
+  last_assessed_at: string
+  next_review_at: string
+  due: boolean
+}
+
+export type Progress = {
+  lessons: { total: number; active: number; completed: number; sections_completed: number }
+  quizzes: { quizzes: number; attempts: number; average_score: number | null; best_score: number | null }
+  activity: { today: string; streak_days: number; active_days_last_30: number; days: string[] }
+  scores: { submission_id: string; quiz_id: string; title: string; score: number; submitted_at: string }[]
+  strong: ConceptMastery[]
+  weak: ConceptMastery[]
+  revision: ConceptMastery[]
+}

@@ -8,6 +8,8 @@ from app.api.v1 import (
     languages,
     lessons,
     mindmaps,
+    progress,
+    quizzes,
     speech,
     tutor,
     users,
@@ -28,4 +30,6 @@ api_router.include_router(languages.router)
 api_router.include_router(mindmaps.router)
 api_router.include_router(diagrams.router)
 api_router.include_router(videos.router)
+api_router.include_router(quizzes.router)
+api_router.include_router(progress.router)
 api_router.include_router(videos.media_router)

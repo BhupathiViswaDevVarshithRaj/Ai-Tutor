@@ -12,14 +12,11 @@ export type TopicValues = { topic: string; level: Level; language: LanguageCode 
 
 type TopicFormProps = {
   submitLabel: string
-  /** Live form: called with the values on submit. */
-  onSubmit?: (values: TopicValues) => void
+  onSubmit: (values: TopicValues) => void
   pending?: boolean
   /** Shown next to the button while `pending`. */
   pendingText?: string
   error?: string
-  /** Not wired yet: submit stays disabled and names the phase that wires it. */
-  phase?: number
   topicLabel?: string
   placeholder?: string
   children?: ReactNode
@@ -32,7 +29,6 @@ export function TopicForm({
   pending = false,
   pendingText = 'Building your lesson plan…',
   error,
-  phase,
   topicLabel = 'What do you want to learn?',
   placeholder = 'e.g. Machine learning from beginner to advanced',
   children,
@@ -47,7 +43,7 @@ export function TopicForm({
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (onSubmit && topic.trim().length >= 2) onSubmit({ topic: topic.trim(), level, language })
+        if (topic.trim().length >= 2) onSubmit({ topic: topic.trim(), level, language })
       }}
     >
       <Field label={topicLabel}>
@@ -94,12 +90,11 @@ export function TopicForm({
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="submit"
-          disabled={!onSubmit || topic.trim().length < 2}
+          disabled={topic.trim().length < 2}
           loading={pending}
         >
           {submitLabel}
         </Button>
-        {!onSubmit && phase && <span className="text-sm text-muted">Available in Phase {phase}</span>}
         {pending && <span className="text-sm text-muted">{pendingText}</span>}
       </div>
     </form>

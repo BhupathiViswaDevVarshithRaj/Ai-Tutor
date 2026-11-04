@@ -1,7 +1,7 @@
 # Project Status
 
-**Current phase:** 12 — Video generation ✅ complete on branch `phase-12-video` (⏸ checkpoint). Next is Phase 13 (quizzes and progress).
-`main` (also on GitHub): Phases 0–11 + UI redesign (`09e559e`).
+**Current phase:** 13 — Assessment and progress ✅ complete on branch `phase-13-assessment`. Next is Phase 14 (testing and hardening).
+`main` (also on GitHub): Phases 0–12 + UI redesign (`45ed408`).
 **Last updated:** 2026-11-04
 
 ## Completed
@@ -35,17 +35,21 @@
 
 - **Phase 12 (video generation):** short animated lesson videos made in the background by a Docker worker (Manim scenes from six templates + FFmpeg), with narration per scene when a real voice is configured, subtitles timed to the narration (in the player and embedded in the MP4), live progress, cancel, delete, download, and a "Make a video" button on lessons.
 
+- **Phase 13 (assessment and progress):** generated quizzes (multiple choice and short answer) marked by rule or by the AI, results by idea with explanations and next steps, mastery per idea with a revision schedule, quick understanding checks from lessons, and a real My Progress page (scores trend, active days, strong and weak ideas, revision plan).
+
 ## Test results (actually executed, 2026-11-04)
 | Suite | Result |
 |---|---|
-| Backend (`pytest`, real Postgres + Redis test DB) | 259 passed, 1 skipped (the real render test, which runs in the worker image) |
+| Backend (`pytest`, real Postgres + Redis test DB) | 271 passed, 1 skipped (the real render test, which runs in the worker image) |
 | Real rendering inside the worker image (`test_video_render.py`) | 1 passed in 27 s: all six templates incl. a Hindi scene rendered and joined; ffprobe shows 854×480 H.264, AAC, `mov_text` subtitles tagged `eng`, duration matches the narration timing |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 25 files, 197 tests passed (repeated full runs) |
+| Frontend (`vitest run`) | 26 files, 202 tests passed (repeated full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |
 | Live speech round-trip via curl through the Vite proxy (mock) | `/speech/info` 200 → Hindi text synthesized to a 2.7 s WAV → same WAV transcribed (duration 2714 ms, labelled mock transcript) |
+| Real-browser quiz + progress (Playwright, Chromium, through the Vite proxy, mock AI) | Generate a 5-question quiz → answer (one wrong, one short answer partly right) → marked 70% (3.5/5) with results by idea and next steps → My Progress shows the attempt on the chart, 1 active day, a strong idea and 3 revision items. Screenshots checked by eye at 1440 px light and 390 px dark (chart text was too small on phones; fixed by drawing at the real width); no page errors, no 5xx, no overflow |
+| Migrations 0008 + 0009 | upgrade → downgrade (drops the new enum) → upgrade; `alembic check` clean |
 | Real-browser video (Playwright with Edge, through the Vite proxy, worker in Docker) | Topic entered → queued → progress shown stage by stage (script, scenes 1–4, joining) → finished in 27 s → signed media link answered 206 `video/mp4` → the player loaded 18.4 s at 1280×720, played, and showed 4 subtitle cues; screenshot checked by eye; no page errors, no 5xx. (Playwright's own Chromium can't play H.264, hence Edge.) |
 | Migration 0007 | upgrade → downgrade (drops both new enums) → upgrade; `alembic check` clean |
 | Migration 0006 | upgrade → downgrade (drops the new enum) → upgrade; `alembic check` clean |
@@ -63,7 +67,10 @@
 
 ## Known limitations
 - **No real model output has been tested yet**: no `ANTHROPIC_API_KEY` is configured, so every AI response so far comes from the mock. The quality of real plans and explanations (especially in Indic languages) still needs checking with a key.
-- Deferred from the Phase 4 roadmap: mastery tracking from understanding checks and quiz generation (Phase 13), RAG over uploaded material (no upload UI yet).
+- Deferred from the Phase 4 roadmap: RAG over uploaded material (no upload UI yet).
+- Mastery comes from quizzes (including lesson "Quiz me" checks), not from the tutor's in-chat questions.
+- Learning time isn't tracked (no `learning_sessions` table); My Progress shows active days and a streak instead, counted in UTC.
+- Quiz content and short-answer marking from the mock AI are placeholders (the mock marks by shared words); real quality needs `ANTHROPIC_API_KEY`.
 - Stopping a reply mid-stream discards it (not saved).
 - No email-address change or account deletion yet.
 - Without SMTP settings, password-reset emails are written to the backend log (dev only).
@@ -89,7 +96,7 @@
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
-- Phase 13: quizzes and progress — quiz generation and marking, mastery per topic from quizzes and understanding checks, the My Progress page (migration 0008).
+- Phase 14: testing and hardening — Playwright E2E for the main journeys, security review (rate limits, headers, isolation), performance checks.
 
 ## Blockers / pending inputs
 - `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).

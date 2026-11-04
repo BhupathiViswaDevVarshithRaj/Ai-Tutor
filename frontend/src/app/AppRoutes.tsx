@@ -22,6 +22,7 @@ const VideoStudioPage = lazy(() => import('../pages/VideoStudioPage'))
 const MindMapPage = lazy(() => import('../pages/MindMapPage'))
 const WhiteboardPage = lazy(() => import('../pages/WhiteboardPage'))
 const QuizPage = lazy(() => import('../pages/QuizPage'))
+const QuizTakePage = lazy(() => import('../pages/QuizTakePage'))
 const ProgressPage = lazy(() => import('../pages/ProgressPage'))
 const HistoryPage = lazy(() => import('../pages/HistoryPage'))
 const SettingsPage = lazy(() => import('../pages/SettingsPage'))
@@ -59,6 +60,7 @@ export function AppRoutes() {
           <Route path="mind-maps" element={<MindMapPage />} />
           <Route path="whiteboard" element={<WhiteboardPage />} />
           <Route path="quizzes" element={<QuizPage />} />
+          <Route path="quizzes/:quizId" element={<QuizTakePage />} />
           <Route path="progress" element={<ProgressPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />

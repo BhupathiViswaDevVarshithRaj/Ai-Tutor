@@ -124,11 +124,12 @@ describe('AppRoutes (signed in)', () => {
     )
   })
 
-  it('keeps unbuilt feature actions disabled and labelled with their phase', async () => {
+  it('marks no workspace as coming soon once every feature is built', async () => {
     signedInApi()
-    renderWithProviders(<AppRoutes />, { route: '/app/quizzes' })
-    expect(await screen.findByRole('button', { name: 'Generate quiz' })).toBeDisabled()
-    expect(screen.getByRole('note')).toHaveTextContent('Coming in Phase 13')
+    renderWithProviders(<AppRoutes />, { route: '/app' })
+    expect((await screen.findAllByRole('link', { name: /Quizzes/ })).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/Phase \d+/)).not.toBeInTheDocument()
+    expect(screen.queryByTitle(/Available in Phase/)).not.toBeInTheDocument()
   })
 
   it('top bar language switch saves to the account and updates the page', async () => {

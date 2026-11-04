@@ -29,6 +29,7 @@ from app.ai.llm.base import (
     Usage,
 )
 from app.ai.mindmap import Branch, BranchNode, MapLink, MapNode, MindMapGraph
+from app.ai.quiz import AnswerGrade, AnswerGrades, QuestionDraft, QuizDraft
 from app.ai.schemas import LessonPlan, LessonSummary, PlanModule, PlanSection
 from app.video.script import Scene, VideoScript
 
@@ -138,6 +139,12 @@ class MockLLMProvider:
             )
         elif schema is VideoScript:
             value = _mock_video(topic)
+        elif schema is QuizDraft:
+            value = _mock_quiz(
+                topic, int(_field(prompt, "Questions", "5")), _field(prompt, "Types", "mixed")
+            )
+        elif schema is AnswerGrades:
+            value = _mock_grades(prompt)
         elif schema is DiagramSpec:
             value = _mock_diagram(topic, _field(prompt, "Diagram type", "your choice"))
         elif schema is MindMapGraph:
@@ -438,3 +445,61 @@ def _mock_video(topic: str) -> VideoScript:
             ),
         ],
     )
+
+
+MOCK_CONCEPTS = ("Basics", "Key terms", "Applications")
+
+
+def _mock_quiz(topic: str, count: int, types: str) -> QuizDraft:
+    """Right answers are 'Right answer n' / 'idea n', so tests and demos can answer them."""
+    questions = []
+    for i in range(1, count + 1):
+        concept = MOCK_CONCEPTS[(i - 1) % len(MOCK_CONCEPTS)]
+        short = types.startswith("short_answer") or (types.startswith("a mix") and i % 3 == 0)
+        if short:
+            questions.append(
+                QuestionDraft(
+                    qtype="short_answer",
+                    prompt=f"[mock] In a few words, what is idea {i} of {topic}?",
+                    options=[],
+                    answer=f"idea {i}",
+                    accepted_answers=[f"idea number {i}"],
+                    explanation=f"Mock explanation: the answer is idea {i}.",
+                    concept=concept,
+                    difficulty=1 + i % 3,
+                )
+            )
+        else:
+            questions.append(
+                QuestionDraft(
+                    qtype="mcq",
+                    prompt=f"[mock] Which statement about {topic} is true? (question {i})",
+                    options=[f"Right answer {i}", "A wrong answer", "Another wrong answer"],
+                    answer=f"Right answer {i}",
+                    accepted_answers=[],
+                    explanation=f"Mock explanation: 'Right answer {i}' is the right option.",
+                    concept=concept,
+                    difficulty=1 + i % 3,
+                )
+            )
+    return QuizDraft(title=f"{topic} (mock quiz)", questions=questions)
+
+
+def _mock_grades(prompt: str) -> AnswerGrades:
+    """Marks by shared words with the model answer; clearly not real marking."""
+    grades = []
+    pattern = r"Item (\d+)\nQuestion: .*?\nModel answer: (.*?)\n<answer>(.*?)</answer>"
+    for index, expected, given in re.findall(pattern, prompt, flags=re.DOTALL):
+        want = set(re.findall(r"\w+", expected.lower()))
+        got = set(re.findall(r"\w+", given.lower()))
+        overlap = len(want & got) / len(want) if want else 0.0
+        score = 1 if overlap >= 0.6 else 0.5 if overlap >= 0.3 else 0
+        grades.append(
+            AnswerGrade(
+                index=int(index),
+                score=score,
+                feedback="[mock] Marked by shared words with the model answer; "
+                "add an ANTHROPIC_API_KEY for real marking.",
+            )
+        )
+    return AnswerGrades(grades=grades)

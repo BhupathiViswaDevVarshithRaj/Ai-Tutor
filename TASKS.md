@@ -136,7 +136,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 11.9 Lesson page "Draw a diagram" / "Open diagram"; Whiteboard no longer marked "soon"
 - [x] 11.10 Tests: backend 238 (45 new), frontend 193 (45 new); real Chromium run of all four diagram types, drawing + reload, and all exports; 1440 px light / 390 px dark
 
-## Phase 12 — Video generation ✅ (branch `phase-12-video`, awaiting your approval)
+## Phase 12 — Video generation ✅
 - [x] 12.1 Migration 0007: `media_assets` and `video_jobs` (+ FK from `messages.audio_asset_id`); reversible incl. the new enums, `alembic check` clean
 - [x] 12.2 Video script: structured output of 3–8 scenes from six templates (title, bullets, flow, plot, timeline, summary) with narration; repaired like other model output (title card added, bad scenes and unsafe formulas dropped)
 - [x] 12.3 Background worker (arq on Redis) in its own Docker image with Manim 0.19 + FFmpeg 7; `docker compose --profile video up -d video-worker`; one job at a time, timeout, no retries
@@ -148,5 +148,17 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 12.9 Frontend: Video Studio (topic, level, language, length), live progress, worker-offline notice with the command, player with subtitles and download, job list; lesson page "Make a video" / "Watch video"; Video Studio no longer marked "soon"
 - [x] 12.10 Tests: backend 259 + 1 render test run inside the worker image (all six templates incl. Hindi, checked with ffprobe), frontend 197 (4 new); real Edge run: topic → worker renders in 27 s → video plays with subtitles
 
-## Phases 13–15
+## Phase 13 — Assessment and progress ✅ (branch `phase-13-assessment`, awaiting your approval)
+- [x] 13.1 Migrations 0008 (`quizzes`, `quiz_questions`, `quiz_submissions`, `quiz_answers`) and 0009 (`topic_mastery`); reversible incl. the new enum, `alembic check` clean
+- [x] 13.2 Quiz generation (3–20 questions; mixed, multiple choice or short answer) with structured output, repaired like other model output (unusable or repeated questions dropped, the right option checked to be among the options, options shuffled)
+- [x] 13.3 Answers and explanations withheld from the API until an attempt is submitted
+- [x] 13.4 Marking: multiple choice and exact short answers by rule; other short answers by the model against a model answer (0, ½ or 1, with feedback); if the marker fails nothing is saved and the learner can resubmit
+- [x] 13.5 Feedback per idea (concept), and next steps by rule: revise weak ideas (one click starts a lesson), try the next level, or retake later
+- [x] 13.6 Mastery per topic and idea (moving average of quiz results) with a revision date: weak ideas next day, others in 3, 7 or 14 days
+- [x] 13.7 Understanding checks: "Quiz me" on the lesson page makes a 5-question check on the current section
+- [x] 13.8 Progress API and My Progress page: lessons, sections done, quizzes taken, average/best score, score trend chart (with table view), active days and streak, strong ideas, ideas that need work, revision plan
+- [x] 13.9 Quizzes and My Progress no longer marked "soon"; the last "Coming in Phase N" placeholders removed
+- [x] 13.10 Tests: backend 271 (12 new), frontend 202 (5 new); real Chromium run: generate → answer → marked 70% (one wrong, one partly right by the mock marker) → progress shows the attempt, active day and revision plan; 1440 px light / 390 px dark, no overflow
+
+## Phases 14–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

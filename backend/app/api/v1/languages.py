@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.ai.llm.base import LLMProvider
 from app.ai.llm.factory import get_llm
-from app.api.deps import CurrentUser, SessionDep
-from app.core.rate_limit import RateLimiter
+from app.api.deps import CurrentUser, SessionDep, UserRateLimiter
 from app.db.enums import PracticeSkill
 from app.schemas.common import CourseLanguage
 from app.schemas.languages import (
@@ -27,7 +26,7 @@ from app.services import language_service
 router = APIRouter(prefix="/languages", tags=["languages"])
 
 LLM = Annotated[LLMProvider, Depends(get_llm)]
-AI_LIMIT = [Depends(RateLimiter("ai", "ai_rate_limit", "ai_rate_window_seconds"))]
+AI_LIMIT = [Depends(UserRateLimiter("ai", "ai_rate_limit", "ai_rate_window_seconds"))]
 
 
 @router.get("")

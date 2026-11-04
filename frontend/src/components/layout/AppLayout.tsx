@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
@@ -32,7 +32,7 @@ export function AppLayout() {
       <AnimatePresence>
         {drawerOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
-            <motion.div
+            <m.div
               className="absolute inset-0 bg-[#1f1b2d]/50"
               aria-hidden
               initial={{ opacity: 0 }}
@@ -40,7 +40,7 @@ export function AppLayout() {
               exit={{ opacity: 0 }}
               onClick={() => setDrawerOpen(false)}
             />
-            <motion.div
+            <m.div
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
@@ -60,7 +60,7 @@ export function AppLayout() {
                 <X className="size-5" aria-hidden />
               </Button>
               <Sidebar indicatorId="drawer-active" onNavigate={() => setDrawerOpen(false)} />
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
@@ -69,14 +69,14 @@ export function AppLayout() {
         <TopBar onOpenNav={() => setDrawerOpen(true)} />
         <main className="flex-1 px-4 pt-2 pb-12 sm:px-6 lg:px-8">
           <Suspense fallback={<PageSpinner />}>
-            <motion.div
+            <m.div
               key={pathname}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             >
               <Outlet />
-            </motion.div>
+            </m.div>
           </Suspense>
         </main>
       </div>

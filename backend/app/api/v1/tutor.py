@@ -6,8 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from app.ai.llm.base import LLMProvider
 from app.ai.llm.factory import get_llm
-from app.api.deps import CurrentUser, SessionDep
-from app.core.rate_limit import RateLimiter
+from app.api.deps import CurrentUser, SessionDep, UserRateLimiter
 from app.schemas.learning import ConversationOut, LessonOut
 from app.schemas.tutor import AIInfo, LessonGenerate, LessonStart, TutorMessageIn
 from app.services import tutor_service
@@ -15,7 +14,7 @@ from app.services import tutor_service
 router = APIRouter(prefix="/tutor", tags=["tutor"])
 
 LLM = Annotated[LLMProvider, Depends(get_llm)]
-AI_LIMIT = [Depends(RateLimiter("ai", "ai_rate_limit", "ai_rate_window_seconds"))]
+AI_LIMIT = [Depends(UserRateLimiter("ai", "ai_rate_limit", "ai_rate_window_seconds"))]
 
 
 @router.get("/info")

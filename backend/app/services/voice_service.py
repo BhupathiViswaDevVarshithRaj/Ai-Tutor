@@ -77,7 +77,6 @@ class VoiceSession:
         self.stt = stt
         self.tts = tts
         self.settings = settings
-        self.client = websocket.client.host if websocket.client else "unknown"
         self.user_id: uuid.UUID | None = None
         self.conversation_id: uuid.UUID | None = None
         self.language = "en"
@@ -214,7 +213,9 @@ class VoiceSession:
             await self._error("bad_message", "Invalid input mode or voice.")
             return
         try:
-            await check_rate_limit("ai", self.client, "ai_rate_limit", "ai_rate_window_seconds")
+            await check_rate_limit(
+                "ai", f"user:{self.user_id}", "ai_rate_limit", "ai_rate_window_seconds"
+            )
         except AppError as exc:
             await self._error(exc.code, exc.message, retryable=True)
             return
@@ -237,7 +238,7 @@ class VoiceSession:
     async def _transcribe(self, audio: bytes, mime: str) -> None:
         try:
             await check_rate_limit(
-                "speech", self.client, "speech_rate_limit", "speech_rate_window_seconds"
+                "speech", f"user:{self.user_id}", "speech_rate_limit", "speech_rate_window_seconds"
             )
             if self.stt.unavailable_reason is not None:
                 raise ProviderNotConfigured("Voice input is not available right now.")

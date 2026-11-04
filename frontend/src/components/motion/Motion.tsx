@@ -1,6 +1,6 @@
 import {
   animate,
-  motion,
+  m,
   useInView,
   useReducedMotion,
   useScroll,
@@ -29,7 +29,7 @@ export function Float({
 }) {
   const reduce = useReducedMotion()
   return (
-    <motion.div
+    <m.div
       aria-hidden
       className={className}
       style={{ rotate }}
@@ -37,7 +37,7 @@ export function Float({
       transition={{ duration, delay, repeat: Infinity, ease: 'easeInOut' }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -55,9 +55,9 @@ export function Parallax({
   const { scrollY } = useScroll()
   const y = useTransform(scrollY, [0, 800], [0, -800 * speed])
   return (
-    <motion.div className={className} style={reduce ? undefined : { y }}>
+    <m.div className={className} style={reduce ? undefined : { y }}>
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -79,7 +79,7 @@ export function Reveal({
     const Plain = as
     return <Plain className={className}>{children}</Plain>
   }
-  const Tag = motion[as]
+  const Tag = m[as]
   return (
     <Tag
       className={className}

@@ -146,8 +146,8 @@ export default function TutorPage() {
       {info.data?.is_mock && (
         <Alert tone="success" className="bg-sun!">
           <strong>Mock AI is on.</strong> Everything works end to end, but replies are
-          placeholders. Add an <code>ANTHROPIC_API_KEY</code> to the backend <code>.env</code>{' '}
-          for real lessons.
+          placeholders. Add a <code>GROQ_API_KEY</code> or <code>ANTHROPIC_API_KEY</code> to the backend{' '}
+          <code>.env</code> for real lessons.
         </Alert>
       )}
 

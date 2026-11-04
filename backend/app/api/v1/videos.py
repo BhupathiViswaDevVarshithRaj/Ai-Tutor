@@ -4,9 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import FileResponse
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, SessionDep, UserRateLimiter
 from app.core.errors import NotFound
-from app.core.rate_limit import RateLimiter
 from app.db.models import MediaAsset
 from app.schemas.videos import VideoCreate, VideoOut, VideoWorkerOut
 from app.services import video_service
@@ -18,7 +17,7 @@ media_router = APIRouter(prefix="/media", tags=["media"])
 
 Queue = Annotated[VideoQueue, Depends(get_video_queue)]
 Storage = Annotated[LocalMediaStorage, Depends(get_storage)]
-VIDEO_LIMIT = [Depends(RateLimiter("video", "video_rate_limit", "video_rate_window_seconds"))]
+VIDEO_LIMIT = [Depends(UserRateLimiter("video", "video_rate_limit", "video_rate_window_seconds"))]
 
 
 @router.get("")

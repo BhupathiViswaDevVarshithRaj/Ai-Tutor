@@ -1,5 +1,5 @@
 import { Menu, X } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
@@ -77,7 +77,7 @@ export function PublicNav() {
 
       <AnimatePresence>
         {open && (
-          <motion.nav
+          <m.nav
             id="public-menu"
             aria-label="Site (menu)"
             className="pop mx-auto mt-2 max-w-7xl rounded-[22px] bg-surface p-2 xl:hidden"
@@ -105,7 +105,7 @@ export function PublicNav() {
                 </li>
               )}
             </ul>
-          </motion.nav>
+          </m.nav>
         )}
       </AnimatePresence>
     </header>

@@ -6,9 +6,8 @@ from fastapi.responses import Response
 from app.ai.speech.audio import ACCEPTED_AUDIO_TYPES
 from app.ai.speech.base import STTProvider, TTSProvider
 from app.ai.speech.factory import get_stt, get_tts
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, UserRateLimiter
 from app.core.config import get_settings
-from app.core.rate_limit import RateLimiter
 from app.schemas.common import AnyLanguage
 from app.schemas.speech import SpeechInfo, SynthesizeIn, TranscriptOut
 from app.services import speech_service
@@ -17,7 +16,9 @@ router = APIRouter(prefix="/speech", tags=["speech"])
 
 STT = Annotated[STTProvider, Depends(get_stt)]
 TTS = Annotated[TTSProvider, Depends(get_tts)]
-SPEECH_LIMIT = [Depends(RateLimiter("speech", "speech_rate_limit", "speech_rate_window_seconds"))]
+SPEECH_LIMIT = [
+    Depends(UserRateLimiter("speech", "speech_rate_limit", "speech_rate_window_seconds"))
+]
 
 # Response headers describing synthesized audio (exposed to the browser via CORS).
 SPEECH_HEADERS = ["X-Speech-Duration-Ms", "X-Speech-Voice", "X-Speech-Provider", "X-Speech-Mock"]

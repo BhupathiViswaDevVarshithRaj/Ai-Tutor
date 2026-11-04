@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–13 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech with Gnani for Indian languages and mock providers for development), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation, mind maps (generated, editable, grown with AI, exportable as PNG/SVG/JSON/outline), and the whiteboard (flowcharts, block diagrams, cycles, timelines and function graphs drawn step by step, with freehand drawing and export), lesson videos (animated scenes rendered in the background with subtitles, a player and download), and quizzes with progress tracking (marked quizzes with explanations, mastery per idea, a revision plan and the My Progress page). Testing and hardening are next. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–13 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech with Gnani for Indian languages and mock providers for development), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation, mind maps (generated, editable, grown with AI, exportable as PNG/SVG/JSON/outline), and the whiteboard (flowcharts, block diagrams, cycles, timelines and function graphs drawn step by step, with freehand drawing and export), lesson videos (animated scenes rendered in the background with subtitles, a player and download), and quizzes with progress tracking (marked quizzes with explanations, mastery per idea, a revision plan and the My Progress page). Phase 14 (testing and hardening) is done; deployment is next. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)
@@ -88,6 +88,14 @@ MSYS_NO_PATHCONV=1 docker compose --profile video run --rm --no-deps -v "$(pwd -
 
 # Frontend
 cd frontend && npm test && npm run lint && npm run build
+
+# End-to-end (Playwright): starts its own backend on :8001 (fresh aitutor_e2e database,
+# mock AI and speech) and Vite on :5174. Needs Postgres + Redis (docker compose up -d).
+cd frontend && npx playwright install chromium   # once
+cd frontend && npm run e2e                        # report: npx playwright show-report
+
+# Response times of the main pages for a busy learner (with `python -m e2e.server` running)
+cd backend && .venv/Scripts/python -m e2e.perf
 ```
 
 ## Layout

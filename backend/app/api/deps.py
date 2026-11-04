@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError
+from app.core.rate_limit import check_rate_limit
 from app.core.security import decode_access_token
 from app.db.models import User
 from app.db.session import get_session
@@ -34,6 +35,24 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+class UserRateLimiter:
+    """Fixed-window limit per signed-in user for costly work (AI, speech, video).
+
+    Keyed by user rather than IP, so learners behind one proxy or school network don't share a
+    budget, and one account can't dodge its limit by changing networks.
+    """
+
+    def __init__(self, scope: str, limit_setting: str, window_setting: str) -> None:
+        self.scope = scope
+        self.limit_setting = limit_setting
+        self.window_setting = window_setting
+
+    async def __call__(self, user: CurrentUser) -> None:
+        await check_rate_limit(
+            self.scope, f"user:{user.id}", self.limit_setting, self.window_setting
+        )
 
 
 async def require_csrf_header(request: Request) -> None:

@@ -36,11 +36,18 @@
 - **Phase 12 (video generation):** short animated lesson videos made in the background by a Docker worker (Manim scenes from six templates + FFmpeg), with narration per scene when a real voice is configured, subtitles timed to the narration (in the player and embedded in the MP4), live progress, cancel, delete, download, and a "Make a video" button on lessons.
 
 - **Phase 13 (assessment and progress):** generated quizzes (multiple choice and short answer) marked by rule or by the AI, results by idea with explanations and next steps, mastery per idea with a revision schedule, quick understanding checks from lessons, and a real My Progress page (scores trend, active days, strong and weak ideas, revision plan).
+- **Phase 14 (testing and hardening):** 12 Playwright end-to-end journeys (sign-up/sign-in, lesson + tutor + progress, voice input, quiz → My Progress, mind map, whiteboard, language words, video queue, privacy between two learners, phone layout and menu) on their own mock backend; security headers, a 4 MB body limit, per-user limits for AI/speech/video, docs off in production; a route-table test that every ID route refuses other users; an N+1 query guard; main bundle trimmed 157 → 117 kB gzip.
 
 ## Test results (actually executed, 2026-11-04)
 | Suite | Result |
 |---|---|
-| Backend (`pytest`, real Postgres + Redis test DB) | 271 passed, 1 skipped (the real render test, which runs in the worker image) |
+| Backend (`pytest`, real Postgres + Redis test DB) | 303 passed, 1 skipped (the real render test, which runs in the worker image) |
+| E2E (`npm run e2e`, Playwright Chromium, desktop + Pixel 7) | 12 passed, two full runs in a row (≈ 1 min each), and again after the bundle change |
+| Isolation (`test_isolation.py`) | all 17 ID routes in the OpenAPI schema answer 404 to another user; creating quizzes, maps, diagrams, videos or conversations on another user's lesson → 404; lists and My Progress empty for the other user |
+| Hardening (`test_hardening.py`) | headers present (also on streamed replies), 413 for large and chunked bodies, audio exempt, per-user AI limit (Alice limited, Bob not), production hides /docs and sends HSTS |
+| Query counts (`test_query_counts.py`) | same number of SQL statements for 1 and 4 of everything: lessons 4, conversations 4, quizzes 7, maps 4, diagrams 4, videos 3, My Progress 18, languages 5, vocabulary 3 |
+| Response times (`e2e/perf.py`, 15 of everything, mock AI) | p50 / p95: /users/me 5 / 6 ms, lists 6–13 / 7–16 ms, /progress 20 / 28 ms |
+| Frontend bundle | main chunk 117 kB gzip (was 157); animation features 19 kB, loaded after first render |
 | Real rendering inside the worker image (`test_video_render.py`) | 1 passed in 27 s: all six templates incl. a Hindi scene rendered and joined; ffprobe shows 854×480 H.264, AAC, `mov_text` subtitles tagged `eng`, duration matches the narration timing |
 | Backend lint (`ruff check`) | clean |
 | Frontend (`vitest run`) | 26 files, 202 tests passed (repeated full runs) |
@@ -93,11 +100,12 @@
 - The whiteboard has no text tool or shapes for learners yet (pen, highlighter and eraser only); generated diagrams can't be edited, only drawn on.
 - Exported board images use the browser's fonts (web fonts aren't embedded), so text may look slightly different from the page.
 - The dev server's auto-reload did not pick up newly created router files on Windows; restart uvicorn after adding modules.
-- Playwright is used for visual screenshots; the automated E2E suite is still planned for Phase 14.
-- Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
+- E2E runs use the mock AI and mock speech (free and repeatable); Groq and Gnani are covered by unit tests with stand-in clients and by the live checks recorded above. Video rendering isn't part of E2E (no worker), only queueing.
+- Rate limits are fixed windows in Redis and fail open if Redis is down. Sign-in limits are per IP, so behind the Phase 15 proxy uvicorn must trust its forwarded headers (`--proxy-headers`).
+- Page-level headers for the web app (CSP, Permissions-Policy for the microphone, HSTS) are set by the web server in Phase 15; the API sets its own.
 
 ## Next (after approval)
-- Phase 14: testing and hardening — Playwright E2E for the main journeys, security review (rate limits, headers, isolation), performance checks.
+- Phase 15 ⏸: deployment — production compose with HTTPS (Caddy), page security headers, trusted proxy headers, object storage option, backups, monitoring, DEPLOYMENT.md. Needs your choice of host.
 
 ## Blockers / pending inputs
 - Optional: `ANTHROPIC_API_KEY` to use Claude instead of Groq.

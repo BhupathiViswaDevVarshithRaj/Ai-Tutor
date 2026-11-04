@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     health_check_timeout_seconds: float = 2.0
+    # Largest JSON body accepted (a full whiteboard drawing is ~1.5 MB); audio has its own limit.
+    max_request_bytes: int = 4 * 1024 * 1024
 
     # --- Auth ---
     frontend_url: str = "http://localhost:5173"

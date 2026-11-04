@@ -1,5 +1,5 @@
 import { ArrowRight, ArrowUpRight, Sparkles } from 'lucide-react'
-import { motion } from 'motion/react'
+import { m } from 'motion/react'
 import { Fragment } from 'react'
 import { Link } from 'react-router'
 
@@ -106,18 +106,18 @@ export default function LandingPage() {
         {/* ------------------------------------------------------------------ Hero */}
         <section className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pt-10 pb-16 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-16">
           <div>
-            <motion.p
+            <m.p
               className="inline-flex items-center gap-2 rounded-full border-2 border-ink bg-surface px-3 py-1 text-sm font-bold"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
               <Sparkles className="size-4 text-brand-500" aria-hidden /> Your personal AI tutor
-            </motion.p>
+            </m.p>
             <h1 className="mt-5 font-display text-[clamp(3.4rem,10.5vw,8.2rem)] leading-[0.86] font-extrabold tracking-[-0.04em]">
               {HEADLINE.map((word, i) => (
                 <Fragment key={word}>
                   {i > 0 && ' '}
-                  <motion.span
+                  <m.span
                     className={cn(
                       'inline-block',
                       i === 2 &&
@@ -128,19 +128,19 @@ export default function LandingPage() {
                     transition={{ delay: 0.1 + i * 0.12, type: 'spring', stiffness: 260, damping: 18 }}
                   >
                     {word}
-                  </motion.span>
+                  </m.span>
                 </Fragment>
               ))}
             </h1>
-            <motion.p
+            <m.p
               className="mt-8 max-w-xl text-lg text-pretty text-muted sm:text-xl"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
               Your personal AI tutor. Learn anything, speak any language, and understand everything.
-            </motion.p>
-            <motion.div
+            </m.p>
+            <m.div
               className="mt-8 flex flex-wrap gap-3"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -152,7 +152,7 @@ export default function LandingPage() {
               <Link to="/app/tutor" className={buttonClasses({ variant: 'sun', size: 'lg' })}>
                 Explore AI Tutor
               </Link>
-            </motion.div>
+            </m.div>
             <p className="mt-6 text-sm font-semibold text-muted">
               {LEVELS.map((l) => l.label).join(' · ')} — in {LANGUAGES.map((l) => l.native).join(', ')}
             </p>

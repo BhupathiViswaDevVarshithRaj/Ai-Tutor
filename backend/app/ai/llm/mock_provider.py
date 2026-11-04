@@ -34,7 +34,7 @@ from app.ai.schemas import LessonPlan, LessonSummary, PlanModule, PlanSection
 from app.video.script import Scene, VideoScript
 
 MOCK_MODEL = "mock-tutor"
-MOCK_NOTICE = "*(Mock AI: add an ANTHROPIC_API_KEY to get real tutor replies.)*"
+MOCK_NOTICE = "*(Mock AI: add a GROQ_API_KEY or ANTHROPIC_API_KEY to get real tutor replies.)*"
 
 
 def _field(text: str, name: str, default: str) -> str:
@@ -97,7 +97,7 @@ class MockLLMProvider:
                 title=f"{topic} (mock plan)",
                 overview=(
                     f"A sample plan for {topic}, generated without an AI model. "
-                    "Add an ANTHROPIC_API_KEY for a real, personalised plan."
+                    "Add a GROQ_API_KEY or ANTHROPIC_API_KEY for a real, personalised plan."
                 ),
                 prerequisites=[],
                 modules=[
@@ -135,7 +135,7 @@ class MockLLMProvider:
             value = LessonSummary(
                 summary=f"Mock summary of a session on {topic} with {turns} learner message(s).",
                 key_points=[f"You started learning {topic}."],
-                next_steps=["Add an ANTHROPIC_API_KEY to get real summaries."],
+                next_steps=["Add a GROQ_API_KEY or ANTHROPIC_API_KEY to get real summaries."],
             )
         elif schema is VideoScript:
             value = _mock_video(topic)
@@ -236,7 +236,7 @@ def _mock_course_content(schema: type, prompt: str, topic: str):
             corrections=[],
             strengths=["Mock feedback: you submitted some text."],
             score=50,
-            summary="Mock feedback. Add an ANTHROPIC_API_KEY for real corrections.",
+            summary="Mock feedback. Add a GROQ_API_KEY or ANTHROPIC_API_KEY for real corrections.",
         )
     if schema is SpeakingSet:
         return SpeakingSet(
@@ -266,7 +266,7 @@ def _mock_mind_map(topic: str) -> MindMapGraph:
                     parent=f"i{i}",
                     label=f"[mock] {kind} {i}.{j}",
                     kind=kind,
-                    detail=f"Mock {kind}. Add an ANTHROPIC_API_KEY for a real map.",
+                    detail=f"Mock {kind}. Add a GROQ_API_KEY or ANTHROPIC_API_KEY for a real map.",
                 )
             )
     return MindMapGraph(
@@ -499,7 +499,7 @@ def _mock_grades(prompt: str) -> AnswerGrades:
                 index=int(index),
                 score=score,
                 feedback="[mock] Marked by shared words with the model answer; "
-                "add an ANTHROPIC_API_KEY for real marking.",
+                "add a GROQ_API_KEY or ANTHROPIC_API_KEY for real marking.",
             )
         )
     return AnswerGrades(grades=grades)

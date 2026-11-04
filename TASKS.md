@@ -168,5 +168,16 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] Tests with stand-in clients (no network): `test_groq_unit.py`, Gnani section of `test_speech_unit.py`; live checks done by hand
 - [x] Video worker rebuilt (Groq scripts, Gnani narration)
 
-## Phases 14–15
-Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).
+## Phase 14 — Testing and hardening ✅ (branch `phase-14-hardening`, awaiting your approval)
+- [x] 14.1 Playwright E2E: own backend (`backend/e2e/server.py`: port 8001, fresh `aitutor_e2e` DB, mock AI/speech) + Vite on 5174; `npm run e2e`
+- [x] 14.2 Journeys: sign up / out / in, protected routes, form errors; lesson → reply → section done → reload → history; voice input (fake mic); quiz → results → My Progress; mind map; whiteboard steps; language words review; video queued; privacy between two learners; every page fits a phone; phone menu
+- [x] 14.3 Isolation: OpenAPI-driven test over every ID route (404 for others), foreign `lesson_id` on create, empty lists for others
+- [x] 14.4 Security headers + no-store, HSTS in production, docs off in production
+- [x] 14.5 Request body limit (4 MB JSON, also chunked); audio keeps its 10 MB limit
+- [x] 14.6 Per-user limits for AI, speech, video and the voice socket (auth stays per IP)
+- [x] 14.7 Reviewed: tokens (pinned HS256), cookies (HttpOnly, SameSite=Strict, path-scoped), CSRF header on cookie routes, password policy, no raw HTML in rendered AI output, keys backend-only
+- [x] 14.8 Performance: N+1 guard on list pages and My Progress; `e2e/perf.py` timings; `LazyMotion` (main bundle 157 → 117 kB gzip)
+- [x] 14.9 Mock AI notices name GROQ_API_KEY as well as ANTHROPIC_API_KEY
+
+## Phase 15 ⏸ — Deployment
+Broken into tasks when the phase starts (needs your choice of host).

@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { m } from 'motion/react'
 import { NavLink } from 'react-router'
 
 import { ACCENT_BG, NAV_GROUPS } from '../../app/navigation'
@@ -41,7 +41,7 @@ export function Sidebar({
                     {({ isActive }) => (
                       <>
                         {isActive && (
-                          <motion.span
+                          <m.span
                             layoutId={indicatorId}
                             className="absolute inset-0 rounded-2xl bg-[#1f1b2d] dark:bg-brand-600"
                             transition={{ type: 'spring', stiffness: 500, damping: 38 }}

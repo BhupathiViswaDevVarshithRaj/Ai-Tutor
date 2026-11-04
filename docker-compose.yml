@@ -31,6 +31,34 @@ services:
       timeout: 3s
       retries: 20
 
+  # Renders explainer videos (Phase 12). Opt-in so `docker compose up` stays fast:
+  #   docker compose --profile video up -d --build video-worker
+  video-worker:
+    profiles: ["video"]
+    build:
+      context: .
+      dockerfile: docker/video-worker.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Inside the compose network, not the host's published ports.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      MEDIA_ROOT: /media
+    volumes:
+      # Shared with the API, which serves the finished files from ./media.
+      - ./media:/media
+      # Live code: restart the worker after changing backend/app (no rebuild needed).
+      - ./backend/app:/app/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   pgdata:
   redisdata:

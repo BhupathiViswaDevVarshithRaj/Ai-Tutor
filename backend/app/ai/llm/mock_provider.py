@@ -30,6 +30,7 @@ from app.ai.llm.base import (
 )
 from app.ai.mindmap import Branch, BranchNode, MapLink, MapNode, MindMapGraph
 from app.ai.schemas import LessonPlan, LessonSummary, PlanModule, PlanSection
+from app.video.script import Scene, VideoScript
 
 MOCK_MODEL = "mock-tutor"
 MOCK_NOTICE = "*(Mock AI: add an ANTHROPIC_API_KEY to get real tutor replies.)*"
@@ -135,6 +136,8 @@ class MockLLMProvider:
                 key_points=[f"You started learning {topic}."],
                 next_steps=["Add an ANTHROPIC_API_KEY to get real summaries."],
             )
+        elif schema is VideoScript:
+            value = _mock_video(topic)
         elif schema is DiagramSpec:
             value = _mock_diagram(topic, _field(prompt, "Diagram type", "your choice"))
         elif schema is MindMapGraph:
@@ -387,4 +390,51 @@ def _mock_diagram(topic: str, requested: str) -> DiagramSpec:
             ),
         ],
         **empty,
+    )
+
+
+def _mock_video(topic: str) -> VideoScript:
+    """A short, clearly labelled script using four of the templates."""
+
+    def scene(template, heading, narration, items=(), caption=""):
+        return Scene(
+            template=template,
+            heading=heading,
+            items=list(items),
+            dates=[],
+            expression="",
+            x_min=0,
+            x_max=1,
+            caption=caption,
+            narration=narration,
+        )
+
+    return VideoScript(
+        title=f"{topic} (mock video)",
+        scenes=[
+            scene(
+                "title",
+                f"{topic} (mock video)",
+                f"This is a mock video about {topic}.",
+                caption="Made without an AI model",
+            ),
+            scene(
+                "bullets",
+                "[mock] Three key ideas",
+                "A real video would explain the main ideas here, one at a time.",
+                items=["[mock] First idea", "[mock] Second idea", "[mock] Third idea"],
+            ),
+            scene(
+                "flow",
+                "[mock] How it works",
+                "Then it would walk through the process step by step.",
+                items=["[mock] Step one", "[mock] Step two", "[mock] Step three"],
+            ),
+            scene(
+                "summary",
+                "[mock] Summary",
+                "Add an Anthropic API key to get real scripts.",
+                items=["[mock] Recap one", "[mock] Recap two"],
+            ),
+        ],
     )

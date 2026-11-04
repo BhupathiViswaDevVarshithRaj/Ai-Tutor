@@ -62,3 +62,26 @@ class DiagramType(StrEnum):
     GRAPH_FN = "graph_fn"
     PROCESS = "process"
     FREEHAND = "freehand"  # a blank sketch board with no generated diagram
+
+
+class MediaKind(StrEnum):
+    AUDIO = "audio"
+    VIDEO = "video"
+    SUBTITLE = "subtitle"
+    IMAGE = "image"
+    DOCUMENT = "document"
+
+
+class VideoStatus(StrEnum):
+    QUEUED = "queued"
+    SCRIPTING = "scripting"
+    NARRATING = "narrating"
+    RENDERING = "rendering"
+    COMPOSITING = "compositing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+    @property
+    def active(self) -> bool:
+        return self not in (VideoStatus.COMPLETED, VideoStatus.FAILED, VideoStatus.CANCELLED)

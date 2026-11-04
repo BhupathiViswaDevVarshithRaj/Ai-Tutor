@@ -1,7 +1,7 @@
 # Project Status
 
-**Current phase:** 11 — Drawing and diagrams ✅ complete on branch `phase-11-diagrams`. Next is Phase 12 (video generation), a major checkpoint.
-`main` (also on GitHub): Phases 0–10 + UI redesign (`07d9fc7`).
+**Current phase:** 12 — Video generation ✅ complete on branch `phase-12-video` (⏸ checkpoint). Next is Phase 13 (quizzes and progress).
+`main` (also on GitHub): Phases 0–11 + UI redesign (`09e559e`).
 **Last updated:** 2026-11-04
 
 ## Completed
@@ -33,16 +33,21 @@
 
 - **Phase 11 (drawing and diagrams):** the whiteboard draws flowcharts, block diagrams, cycles, timelines and function graphs step by step (layout computed by the app; formulas through a whitelisted parser), with playback controls, read-aloud step explanations, a freehand layer (pen, highlighter, eraser, undo/redo), blank sketch boards, and PNG/SVG/JSON export.
 
+- **Phase 12 (video generation):** short animated lesson videos made in the background by a Docker worker (Manim scenes from six templates + FFmpeg), with narration per scene when a real voice is configured, subtitles timed to the narration (in the player and embedded in the MP4), live progress, cancel, delete, download, and a "Make a video" button on lessons.
+
 ## Test results (actually executed, 2026-11-04)
 | Suite | Result |
 |---|---|
-| Backend (`pytest`, real Postgres + Redis test DB) | 238 passed |
+| Backend (`pytest`, real Postgres + Redis test DB) | 259 passed, 1 skipped (the real render test, which runs in the worker image) |
+| Real rendering inside the worker image (`test_video_render.py`) | 1 passed in 27 s: all six templates incl. a Hindi scene rendered and joined; ffprobe shows 854×480 H.264, AAC, `mov_text` subtitles tagged `eng`, duration matches the narration timing |
 | Backend lint (`ruff check`) | clean |
-| Frontend (`vitest run`) | 24 files, 193 tests passed (repeated full runs) |
+| Frontend (`vitest run`) | 25 files, 197 tests passed (repeated full runs) |
 | Frontend lint (`oxlint`) / build (`tsc -b && vite build`) | clean / success |
 | Claude adapter vs real SDK 2.4 over a mocked HTTP transport | request shape verified (beta header, `fallbacks`, effort, cache control, JSON schema); stream + parse round-trip OK |
 | Live tutor flow (browser via Playwright, mock AI) | start lesson → classroom → streamed reply → section marked done; no page errors or overflow at 1440/390 px |
 | Live speech round-trip via curl through the Vite proxy (mock) | `/speech/info` 200 → Hindi text synthesized to a 2.7 s WAV → same WAV transcribed (duration 2714 ms, labelled mock transcript) |
+| Real-browser video (Playwright with Edge, through the Vite proxy, worker in Docker) | Topic entered → queued → progress shown stage by stage (script, scenes 1–4, joining) → finished in 27 s → signed media link answered 206 `video/mp4` → the player loaded 18.4 s at 1280×720, played, and showed 4 subtitle cues; screenshot checked by eye; no page errors, no 5xx. (Playwright's own Chromium can't play H.264, hence Edge.) |
+| Migration 0007 | upgrade → downgrade (drops both new enums) → upgrade; `alembic check` clean |
 | Migration 0006 | upgrade → downgrade (drops the new enum) → upgrade; `alembic check` clean |
 | Real-browser whiteboard (Playwright, Chromium, through the Vite proxy) | Flowchart, function graph, cycle and timeline each generated, revealed step by step and in full; a pen stroke saved and restored after reload; PNG, SVG and JSON exported; screenshots and the exported PNG checked by eye (a loop line crossing a box was found and fixed). 1440 px light, 390 px dark; no page errors, no 5xx |
 | Migration 0005 | upgrade → downgrade → upgrade on the dev database; `alembic check` clean |
@@ -69,7 +74,12 @@
 - Course content quality (vocabulary, exercises, feedback, role-play) is untested with a real model: no API key yet. The mock produces clearly labelled placeholder material.
 - Speaking scores are only meaningful with real speech recognition (the mock 'hears' placeholder text).
 - The listening transcript is sent to the browser (hidden until shown), so a determined learner can read it early.
-- Subtitle languages are deferred to Phase 12 (videos).
+- Videos are silent until a real voice (Gnani) is connected: the mock voice isn't speech, so mock videos carry subtitles only (labelled in the player).
+- Video scripts from the mock AI are placeholders; real scripts need `ANTHROPIC_API_KEY`.
+- The video worker is a 2.4 GB Docker image and must be started separately (`docker compose --profile video up -d video-worker`); without it, videos wait in the queue and the page says so.
+- One video renders at a time; a 60 s video at 720p takes roughly 30–60 s on this machine.
+- Videos are stored on the local disk (`media/`); there's no cloud storage or automatic clean-up of old files yet (deleting a video removes its files).
+- Subtitles are in the video's own language only (no translated subtitle tracks yet).
 - SVG exports are large (≈ 3.7 MB) because all web fonts, including the Indic script fonts, are embedded; PNG is ≈ 60 kB.
 - Mind maps are a tree plus a few cross-links; learners can't draw new cross-links yet (they come from generation).
 - The whiteboard has no text tool or shapes for learners yet (pen, highlighter and eraser only); generated diagrams can't be edited, only drawn on.
@@ -79,7 +89,7 @@
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
 
 ## Next (after approval)
-- Phase 12 ⏸: video generation — a background worker with Manim + FFmpeg, templated scenes, narration, subtitles, job progress and a player (migration 0007). Needs Manim and FFmpeg installed.
+- Phase 13: quizzes and progress — quiz generation and marking, mastery per topic from quizzes and understanding checks, the My Progress page (migration 0008).
 
 ## Blockers / pending inputs
 - `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).

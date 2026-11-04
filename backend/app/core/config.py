@@ -78,6 +78,17 @@ class Settings(BaseSettings):
     speech_rate_limit: int = 30
     speech_rate_window_seconds: int = 60
 
+    # --- Video generation (Phase 12) ---
+    # Rendered files live here; the video worker container mounts the same folder.
+    media_root: Path = REPO_DIR / "media"
+    # Manim quality: l = 480p15 (fast), m = 720p30, h = 1080p60.
+    video_quality: Literal["l", "m", "h"] = "m"
+    video_job_timeout_seconds: int = 1200
+    video_rate_limit: int = 5
+    video_rate_window_seconds: int = 3600
+    # Signed links for <video>/<track> elements, which can't send an Authorization header.
+    media_url_ttl_seconds: int = 3600
+
     # --- Email (optional; console mailer is used when SMTP_HOST is empty) ---
     smtp_host: str = ""
     smtp_port: int = 587
@@ -88,6 +99,13 @@ class Settings(BaseSettings):
     @property
     def cookie_secure(self) -> bool:
         return self.app_env == "production"
+
+    @field_validator("media_root", mode="after")
+    @classmethod
+    def _anchor_media_root(cls, value: Path) -> Path:
+        # A relative MEDIA_ROOT (e.g. ./media in .env) means relative to the repo, not to
+        # whichever folder the server happens to be started from.
+        return value if value.is_absolute() else (REPO_DIR / value).resolve()
 
     @field_validator("cors_origins", mode="before")
     @classmethod

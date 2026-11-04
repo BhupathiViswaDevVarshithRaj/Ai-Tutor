@@ -70,11 +70,12 @@
 - Deferred from the Phase 4 roadmap: RAG over uploaded material (no upload UI yet).
 - Mastery comes from quizzes (including lesson "Quiz me" checks), not from the tutor's in-chat questions.
 - Learning time isn't tracked (no `learning_sessions` table); My Progress shows active days and a streak instead, counted in UTC.
-- Quiz content and short-answer marking from the mock AI are placeholders (the mock marks by shared words); real quality needs `ANTHROPIC_API_KEY`.
+- Quiz content and short-answer marking from the mock AI are placeholders (the mock marks by shared words); tests still use the mock.
 - Stopping a reply mid-stream discards it (not saved).
 - No email-address change or account deletion yet.
 - Without SMTP settings, password-reset emails are written to the backend log (dev only).
-- Speech is mock-only: transcripts are placeholders and read-aloud plays tones. Real microphone audio is recorded and uploaded, but not recognised until Gnani is integrated.
+- **Groq + Gnani connected (2026-11-04, branch `phase-gnani-groq`):** Groq (`openai/gpt-oss-120b`) writes tutor replies, lesson plans, quizzes, marking, mind maps, diagrams, video scripts and course material; Gnani does speech-to-text and read-aloud for English and nine Indian languages. Checked live: all 9 structured formats, a streamed reply, a quiz, TTS and STT through the API (WebM and > 30 s recordings too).
+- Gnani has no voices for the world-course languages (German, French, …), so speech is unavailable there. Gnani response time varies (1–9 s per call observed, also with curl).
 - A voice session stays authorised until it disconnects (the token is checked at connect and each reconnect); per-sentence speech inside a turn is not separately rate-limited (turns are).
 - Speech recognition is per recording (no streaming recognition while you talk); the mock returns placeholder text.
 - The mock AI writes Markdown even in voice conversations; the spoken style applies to the real model.
@@ -90,7 +91,7 @@
 - SVG exports are large (≈ 3.7 MB) because all web fonts, including the Indic script fonts, are embedded; PNG is ≈ 60 kB.
 - Mind maps are a tree plus a few cross-links; learners can't draw new cross-links yet (they come from generation).
 - The whiteboard has no text tool or shapes for learners yet (pen, highlighter and eraser only); generated diagrams can't be edited, only drawn on.
-- Exported board images use the browser's fonts (web fonts aren't embedded), so text may look slightly different from the page. Real speech needs Gnani's official docs + key.
+- Exported board images use the browser's fonts (web fonts aren't embedded), so text may look slightly different from the page.
 - The dev server's auto-reload did not pick up newly created router files on Windows; restart uvicorn after adding modules.
 - Playwright is used for visual screenshots; the automated E2E suite is still planned for Phase 14.
 - Main JS bundle is 156 kB gzip after adding `motion` (was 96 kB); could be trimmed with `LazyMotion` if needed.
@@ -99,6 +100,5 @@
 - Phase 14: testing and hardening — Playwright E2E for the main journeys, security review (rate limits, headers, isolation), performance checks.
 
 ## Blockers / pending inputs
-- `ANTHROPIC_API_KEY` to switch the tutor from mock to Claude (add to `.env`, restart the backend).
-- Gnani documentation + key (any time after Phase 5).
+- Optional: `ANTHROPIC_API_KEY` to use Claude instead of Groq.
 - Optional SMTP credentials.

@@ -42,7 +42,8 @@ export default function VoiceTutorPage() {
   const [autoSend, setAutoSend] = useState(() => readStorage(AUTO_SEND_KEY, true, isBoolean))
   const voice = useVoiceTutor(conversationId, { autoSend })
 
-  const voices = useSpeechInfo().data?.tts.voices ?? []
+  // Some providers' voices speak one language each; offer those for the current language.
+  const voices = (useSpeechInfo().data?.tts.voices ?? []).filter((v) => v.languages.includes(language))
   const voiceSettings = useVoiceSettings()
   const player = useSpeechPlayer()
   const readAloudBlocked = player.unavailableReason(language)

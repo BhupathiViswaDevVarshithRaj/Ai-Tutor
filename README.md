@@ -40,7 +40,7 @@ To build an AI-powered digital classroom where anyone can learn any subject, pra
 
 ## 📍 Current Status
 
-Phases 0–11 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation, mind maps (generated, editable, grown with AI, exportable as PNG/SVG/JSON/outline), and the whiteboard (flowcharts, block diagrams, cycles, timelines and function graphs drawn step by step, with freehand drawing and export). Voice, mind maps, whiteboard, video, quizzes and language courses are in progress. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+Phases 0–12 are complete: architecture and planning, environment, UI, accounts and data storage, the AI tutor (lesson plans, streamed explanations, summaries), the speech layer (speech-to-text / text-to-speech interfaces with mock providers; Gnani is prepared but disabled), voice input (record, transcribe, correct; dictation in lessons), read-aloud (listen to any reply with play/pause/stop, speed and voice saved to your account), the voice tutor (a live spoken conversation you can interrupt, which reconnects with its history), and world-language courses (German, French, Spanish, Japanese, Korean, Chinese, Italian, Portuguese; CEFR A1–C2) with vocabulary review, grammar, listening, reading, writing, speaking and role-play conversation, mind maps (generated, editable, grown with AI, exportable as PNG/SVG/JSON/outline), and the whiteboard (flowcharts, block diagrams, cycles, timelines and function graphs drawn step by step, with freehand drawing and export), and lesson videos (animated scenes rendered in the background with subtitles, a player and download). Quizzes and progress tracking are next. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ## Prerequisites
 - Docker Desktop (runs Postgres + pgvector and Redis)
@@ -67,6 +67,9 @@ python -m venv .venv
 cd frontend
 npm install
 npm run dev                      # http://localhost:5173 (proxies /api to :8000)
+
+# 5. Video worker (optional; needed only for Video Studio)
+docker compose --profile video up -d --build video-worker   # first build ≈ 2.4 GB
 ```
 
 ## Tests
@@ -79,6 +82,10 @@ cd backend && .venv/Scripts/python -m pytest -m integration
 # Lint
 cd backend && .venv/Scripts/python -m ruff check .
 
+# Real video rendering (runs inside the worker image; skipped elsewhere)
+MSYS_NO_PATHCONV=1 docker compose --profile video run --rm --no-deps -v "$(pwd -W)/backend/tests:/app/tests" video-worker \
+  sh -c "pip install -q pytest; python -m pytest -q -p no:cacheprovider --noconftest tests/test_video_render.py"
+
 # Frontend
 cd frontend && npm test && npm run lint && npm run build
 ```
@@ -87,7 +94,9 @@ cd frontend && npm test && npm run lint && npm run build
 ```
 backend/    FastAPI app (app/), Alembic migrations, pytest suite
 frontend/   React + TypeScript + Vite + Tailwind
-docker-compose.yml   Postgres (pgvector) + Redis
+docker/     video worker image (Manim + FFmpeg)
+media/      rendered videos and subtitles (git-ignored)
+docker-compose.yml   Postgres (pgvector) + Redis, video worker (profile `video`)
 ```
 
 ## API (prefix `/api/v1`)
@@ -102,6 +111,7 @@ docker-compose.yml   Postgres (pgvector) + Redis
 | Speech | `GET /speech/info`, `POST /speech/transcribe?language=` (raw audio body), `POST /speech/synthesize` (returns audio) |
 | Voice tutor | WebSocket `/voice/ws` (protocol in ARCHITECTURE.md › Voice tutor) |
 | Diagrams | `GET/POST /diagrams`, `POST /diagrams/sketch`, `GET/PATCH/DELETE /diagrams/{id}` |
+| Videos | `GET/POST /videos` (POST → 202), `GET /videos/worker`, `GET /videos/{id}`, `POST /videos/{id}/cancel`, `DELETE /videos/{id}`; files via `GET /media/{id}?token=` (signed link, Range supported) |
 | Mind maps | `GET/POST /mindmaps`, `GET/PATCH/DELETE /mindmaps/{id}`, `POST /mindmaps/{id}/expand` |
 | Language courses | `GET /languages`, `PUT /languages/{code}`, `GET /languages/{code}/progress`, `GET /languages/{code}/vocabulary`, `POST /languages/{code}/vocabulary/generate`, `POST /languages/vocabulary/{id}/review`, `DELETE /languages/vocabulary/{id}`, `GET/POST /languages/{code}/practice`, `GET /languages/practice/{id}`, `POST /languages/practice/{id}/submit` |
 
@@ -111,6 +121,8 @@ Interactive docs: http://localhost:8000/docs
 **AI tutor:** set `ANTHROPIC_API_KEY` in `.env` and restart the backend to use Claude (`claude-opus-5-5` by default; see the `LLM_*` settings). Without a key the app runs on a clearly labelled mock provider.
 
 **Speech:** runs on mock providers (`STT_PROVIDER=mock`, `TTS_PROVIDER=mock`), labelled "Mock" in the UI. The Gnani adapters are placeholders: they make no network calls and are implemented only once Gnani's official API documentation is available.
+
+**Videos:** made by the `video-worker` container (arq queue on Redis, Manim + FFmpeg). Without it, videos wait in the queue and Video Studio shows how to start it. Files go to `MEDIA_ROOT` (default `media/` in the repo). While speech uses the mock voice, videos are silent with subtitles.
 
 **Language evaluation:** `cd backend && .venv/Scripts/python -m evals.run_language_eval` checks that tutor and role-play replies come back in the right language. With the mock it only exercises the pipeline; add `--yes` to run it against the real model (paid API calls).
 

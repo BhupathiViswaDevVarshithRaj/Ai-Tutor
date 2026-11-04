@@ -12,6 +12,7 @@ import { LessonPlanPanel } from '../features/tutor/LessonPlanPanel'
 import { SummaryCard } from '../features/tutor/SummaryCard'
 import { LessonMindMapCard } from '../features/mindmap/LessonMindMapCard'
 import { LessonDiagramCard } from '../features/whiteboard/LessonDiagramCard'
+import { LessonVideoCard } from '../features/video/LessonVideoCard'
 import { MockBadge } from '../features/tutor/MockBadge'
 import { useTutorChat } from '../features/tutor/useTutorChat'
 import { ApiError } from '../lib/api/client'
@@ -73,6 +74,7 @@ function LessonView({
           <SummaryCard lesson={lesson} disabled={chat.busy || chat.messages.length === 0} />
           <LessonMindMapCard lesson={lesson} />
           <LessonDiagramCard lesson={lesson} />
+          <LessonVideoCard lesson={lesson} />
         </aside>
       </div>
     </div>

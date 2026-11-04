@@ -313,3 +313,38 @@ export type DiagramSummary = {
   stroke_count: number
   updated_at: string
 }
+
+// --- Videos (Phase 12) ---
+
+export type VideoStatus =
+  | 'queued'
+  | 'scripting'
+  | 'narrating'
+  | 'rendering'
+  | 'compositing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+
+export type VideoJob = {
+  id: string
+  lesson_id: string | null
+  topic: string
+  title: string
+  language: LanguageCode
+  level: Level
+  target_seconds: number
+  status: VideoStatus
+  progress: number
+  stage_detail: string | null
+  error: string | null
+  /** False: silent with subtitles (no real voice configured yet). */
+  narrated: boolean
+  scene_count: number
+  duration_ms: number | null
+  video_url: string | null
+  subtitles_url: string | null
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+}

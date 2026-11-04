@@ -2,6 +2,7 @@
 
 from app.db.models.languages import LanguageEnrollment, PracticeSession, VocabItem
 from app.db.models.learning import Conversation, Lesson, Message
+from app.db.models.media import MediaAsset, VideoJob
 from app.db.models.user import PasswordResetToken, RefreshToken, User, UserPreferences
 from app.db.models.visual import Diagram, MindMap
 
@@ -10,6 +11,7 @@ __all__ = [
     "Diagram",
     "LanguageEnrollment",
     "Lesson",
+    "MediaAsset",
     "Message",
     "MindMap",
     "PracticeSession",
@@ -17,5 +19,6 @@ __all__ = [
     "RefreshToken",
     "User",
     "UserPreferences",
+    "VideoJob",
     "VocabItem",
 ]

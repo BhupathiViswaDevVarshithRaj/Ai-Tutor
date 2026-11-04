@@ -11,6 +11,7 @@ from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.redis import close_redis
 from app.db.session import dispose_engine
+from app.services.video_service import video_queue
 
 
 @asynccontextmanager
@@ -18,6 +19,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
     await dispose_engine()
     await close_redis()
+    await video_queue.close()
 
 
 def create_app() -> FastAPI:

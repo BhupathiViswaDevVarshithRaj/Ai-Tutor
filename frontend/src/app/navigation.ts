@@ -70,7 +70,6 @@ const VIDEOS: NavItem = {
   icon: Clapperboard,
   accent: 'rose',
   description: 'Short narrated lesson videos with subtitles.',
-  phase: 12,
 }
 const QUIZZES: NavItem = {
   to: '/app/quizzes',

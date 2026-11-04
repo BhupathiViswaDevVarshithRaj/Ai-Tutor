@@ -103,8 +103,8 @@ def tokenize(expression: str) -> list[str]:
     return tokens
 
 
-def check_expression(expression: str) -> None:
-    """Raise DiagramError unless `expression` is a valid formula in x (grammar below).
+def parse_expression(expression: str) -> tuple:
+    """Parse a formula in x into a small tree, or raise DiagramError (grammar below).
 
     expr := term (('+'|'-') term)* ; term := unary (('*'|'/') unary)* ;
     unary := ('+'|'-') unary | power ; power := atom ('^' unary)? ;
@@ -125,46 +125,110 @@ def check_expression(expression: str) -> None:
         pos += 1
         return token
 
-    def expr() -> None:
-        term()
+    def expr() -> tuple:
+        node = term()
         while peek() in ("+", "-"):
-            take()
-            term()
+            node = (take(), node, term())
+        return node
 
-    def term() -> None:
-        unary()
+    def term() -> tuple:
+        node = unary()
         while peek() in ("*", "/"):
-            take()
-            unary()
+            node = (take(), node, unary())
+        return node
 
-    def unary() -> None:
-        if peek() in ("+", "-"):
+    def unary() -> tuple:
+        if peek() == "-":
             take()
-            unary()
-        else:
-            power()
+            return ("neg", unary())
+        if peek() == "+":
+            take()
+            return unary()
+        return power()
 
-    def power() -> None:
-        atom()
+    def power() -> tuple:
+        base = atom()
         if peek() == "^":
             take()
-            unary()
+            return ("^", base, unary())
+        return base
 
-    def atom() -> None:
+    def atom() -> tuple:
         token = take()
         if token in FUNCTIONS:
             take("(")
-            expr()
+            inner = expr()
             take(")")
-        elif token == "(":
-            expr()
+            return ("fn", token, inner)
+        if token == "(":
+            inner = expr()
             take(")")
-        elif not (token == "x" or token in CONSTANTS or re.fullmatch(r"\d+(\.\d+)?|\.\d+", token)):
-            raise DiagramError(f"'{expression}' isn't a valid formula.")
+            return inner
+        if token == "x":
+            return ("x",)
+        if token in CONSTANTS:
+            return ("num", math.pi if token == "pi" else math.e)
+        if re.fullmatch(r"\d+(\.\d+)?|\.\d+", token):
+            return ("num", float(token))
+        raise DiagramError(f"'{expression}' isn't a valid formula.")
 
-    expr()
+    tree = expr()
     if pos != len(tokens):
         raise DiagramError(f"'{expression}' has something extra at the end.")
+    return tree
+
+
+def check_expression(expression: str) -> None:
+    """Raise DiagramError unless `expression` is a valid formula in x."""
+    parse_expression(expression)
+
+
+_FN = {
+    "sin": math.sin,
+    "cos": math.cos,
+    "tan": math.tan,
+    "sqrt": math.sqrt,
+    "abs": abs,
+    "log": math.log10,
+    "ln": math.log,
+    "exp": math.exp,
+}
+
+
+def _evaluate(node: tuple, x: float) -> float:
+    kind = node[0]
+    if kind == "num":
+        return node[1]
+    if kind == "x":
+        return x
+    if kind == "neg":
+        return -_evaluate(node[1], x)
+    if kind == "fn":
+        return _FN[node[1]](_evaluate(node[2], x))
+    a, b = _evaluate(node[1], x), _evaluate(node[2], x)
+    if kind == "+":
+        return a + b
+    if kind == "-":
+        return a - b
+    if kind == "*":
+        return a * b
+    if kind == "/":
+        return a / b
+    return a**b
+
+
+def compile_expression(expression: str):
+    """A function of x for a valid formula; NaN where it is undefined (e.g. sqrt(-1), 1/0)."""
+    tree = parse_expression(expression)
+
+    def f(x: float) -> float:
+        try:
+            value = _evaluate(tree, x)
+        except (ValueError, ZeroDivisionError, OverflowError):
+            return math.nan
+        return value if isinstance(value, float | int) and math.isfinite(value) else math.nan
+
+    return f
 
 
 # --- validation ---------------------------------------------------------------------

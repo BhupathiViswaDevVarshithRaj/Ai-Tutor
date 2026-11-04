@@ -84,8 +84,9 @@ class Message(CreatedAtMixin, Base):
         default=InputMode.TEXT,
         server_default=InputMode.TEXT.value,
     )
-    # FK to media_assets is added with that table in migration 0006.
-    audio_asset_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    audio_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("media_assets.id", ondelete="SET NULL")
+    )
     model: Mapped[str | None] = mapped_column(String(100))
     input_tokens: Mapped[int | None]
     output_tokens: Mapped[int | None]

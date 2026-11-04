@@ -126,9 +126,9 @@ describe('AppRoutes (signed in)', () => {
 
   it('keeps unbuilt feature actions disabled and labelled with their phase', async () => {
     signedInApi()
-    renderWithProviders(<AppRoutes />, { route: '/app/videos' })
-    expect(await screen.findByRole('button', { name: 'Generate video' })).toBeDisabled()
-    expect(screen.getByRole('note')).toHaveTextContent('Coming in Phase 12')
+    renderWithProviders(<AppRoutes />, { route: '/app/quizzes' })
+    expect(await screen.findByRole('button', { name: 'Generate quiz' })).toBeDisabled()
+    expect(screen.getByRole('note')).toHaveTextContent('Coming in Phase 13')
   })
 
   it('top bar language switch saves to the account and updates the page', async () => {

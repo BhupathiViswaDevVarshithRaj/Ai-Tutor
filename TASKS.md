@@ -124,7 +124,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 10.8 Lesson page "Make a mind map" / "Open mind map"; Mind Maps no longer marked "soon"
 - [x] 10.9 Tests: backend 193 (24 new), frontend 148 (13 new); real Chromium run: generate → rename → AI expand → fold + drag → reload keeps layout → all four exports downloaded; 1440 px light / 390 px dark
 
-## Phase 11 — Drawing and diagrams ✅ (branch `phase-11-diagrams`, awaiting your approval)
+## Phase 11 — Drawing and diagrams ✅
 - [x] 11.1 Migration 0006: `diagrams` (type, validated spec, freehand strokes); reversible incl. the new enum, `alembic check` clean
 - [x] 11.2 Diagram description: flowchart, block, cycle (process), timeline, function graph; elements, connectors, plotted functions and points, and ordered reveal steps; no coordinates from the model
 - [x] 11.3 Safe formulas: one whitelisted grammar (numbers, x, + − × ÷ ^, sin cos tan sqrt abs log ln exp, pi, e), checked in Python and parsed/evaluated in TypeScript; never `eval`; both sides tested against the same accept/reject list
@@ -136,5 +136,17 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 11.9 Lesson page "Draw a diagram" / "Open diagram"; Whiteboard no longer marked "soon"
 - [x] 11.10 Tests: backend 238 (45 new), frontend 193 (45 new); real Chromium run of all four diagram types, drawing + reload, and all exports; 1440 px light / 390 px dark
 
-## Phases 12–15
+## Phase 12 — Video generation ✅ (branch `phase-12-video`, awaiting your approval)
+- [x] 12.1 Migration 0007: `media_assets` and `video_jobs` (+ FK from `messages.audio_asset_id`); reversible incl. the new enums, `alembic check` clean
+- [x] 12.2 Video script: structured output of 3–8 scenes from six templates (title, bullets, flow, plot, timeline, summary) with narration; repaired like other model output (title card added, bad scenes and unsafe formulas dropped)
+- [x] 12.3 Background worker (arq on Redis) in its own Docker image with Manim 0.19 + FFmpeg 7; `docker compose --profile video up -d video-worker`; one job at a time, timeout, no retries
+- [x] 12.4 Pipeline with real progress: script → narration (TTS per scene) → Manim scenes → FFmpeg join (padding to narration length, H.264/AAC, `+faststart`); cancel between steps; stalled jobs expire
+- [x] 12.5 Subtitles timed to the narration: WebVTT for the player, SRT embedded as a `mov_text` track with the language tag; Indic scripts rendered with Noto fonts
+- [x] 12.6 Mock TTS isn't speech, so mock videos are silent with subtitles and say so; real narration switches on with a real voice provider
+- [x] 12.7 Media files served by signed, expiring links (Range requests supported) because `<video>` can't send a token
+- [x] 12.8 API: create (202, rate-limited, ≤2 active per learner), list, get, cancel, delete (removes files), worker status
+- [x] 12.9 Frontend: Video Studio (topic, level, language, length), live progress, worker-offline notice with the command, player with subtitles and download, job list; lesson page "Make a video" / "Watch video"; Video Studio no longer marked "soon"
+- [x] 12.10 Tests: backend 259 + 1 render test run inside the worker image (all six templates incl. Hindi, checked with ffprobe), frontend 197 (4 new); real Edge run: topic → worker renders in 27 s → video plays with subtitles
+
+## Phases 13–15
 Broken into tasks when each phase starts (see DEVELOPMENT_ROADMAP.md).

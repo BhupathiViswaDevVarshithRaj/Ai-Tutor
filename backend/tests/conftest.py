@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 # Point the app at isolated test resources BEFORE any app module reads settings.
 os.environ["APP_ENV"] = "test"
@@ -14,6 +15,8 @@ os.environ["GNANI_API_KEY"] = ""
 os.environ["GNANI_API_BASE_URL"] = ""
 os.environ["GNANI_STT_ENABLED"] = "false"
 os.environ["GNANI_TTS_ENABLED"] = "false"
+# Rendered test media goes to a throwaway folder, never the real ./media.
+os.environ["MEDIA_ROOT"] = tempfile.mkdtemp(prefix="aitutor-media-")
 
 import asyncio  # noqa: E402
 import socket  # noqa: E402

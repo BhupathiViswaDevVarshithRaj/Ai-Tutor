@@ -81,11 +81,11 @@ Unique `(chunk_id, model)`. **HNSW index** `USING hnsw (embedding vector_cosine_
 ### diagrams (built in Phase 11)
 `id`, `user_id fk`, `lesson_id fk null`, `title`, `diagram_type enum(flowchart, block, timeline, graph_fn, process, freehand)`, `spec jsonb` (validated `DiagramSpec`), `canvas_strokes jsonb null` (freehand layer), `created_at`, `updated_at`.
 
-### video_jobs
-`id`, `user_id fk`, `lesson_id fk null`, `topic`, `language`, `level`, `target_seconds int check (30..120)`, `status enum(queued, scripting, rendering, narrating, compositing, completed, failed, cancelled)`, `progress smallint 0..100`, `stage_detail text`, `script jsonb`, `storyboard jsonb`, `error text null`, `video_asset_id fk null`, `subtitle_asset_id fk null`, `started_at`, `finished_at`, `created_at`.
+### video_jobs (built in Phase 12)
+`id`, `user_id fk`, `lesson_id fk null`, `topic`, `language`, `level`, `target_seconds int check (30..120)`, `status enum(queued, scripting, rendering, narrating, compositing, completed, failed, cancelled)`, `progress smallint 0..100`, `stage_detail text`, `script jsonb` (validated scenes; no separate storyboard), `error text null`, `video_asset_id fk null`, `subtitle_asset_id fk null`, `narrated bool`, `started_at`, `finished_at`, `created_at`.
 Indexes: `(user_id, created_at desc)`, `(status)` for worker housekeeping.
 
-### media_assets
+### media_assets (built in Phase 12)
 `id`, `user_id fk`, `kind enum(audio, video, subtitle, image, document)`, `mime_type`, `storage_key text unique`, `size_bytes bigint`, `duration_ms int null`, `language null`, `meta jsonb`, `created_at`. Served only through authenticated routes or short-lived signed URLs.
 
 ### quizzes
@@ -137,7 +137,7 @@ Course progress (words learned/mastered/due, per-skill averages, streak) is comp
 4. `0004_language_courses` (Phase 9, built): language_enrollments, vocab_items, practice_sessions.
 5. `0005_mind_maps` (Phase 10, built): mind_maps.
 6. `0006_diagrams` (Phase 11, built): diagrams.
-7. `0007_media_video`: media_assets, video_jobs.
+7. `0007_media_and_video_jobs` (Phase 12, built): media_assets, video_jobs; `messages.audio_asset_id` now references media_assets (SET NULL).
 8. `0008_assessment`: quizzes, quiz_questions, quiz_submissions, quiz_answers.
 9. `0009_progress`: topic_mastery, learning_sessions.
 10. `0010_rag` (later): learning_resources, document_chunks, embeddings + HNSW. (RAG was deferred from Phase 4, so its migration moves after the others.)

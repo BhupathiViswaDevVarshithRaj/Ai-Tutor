@@ -11,6 +11,7 @@ from app.api.v1 import (
     speech,
     tutor,
     users,
+    videos,
     voice,
 )
 
@@ -26,3 +27,5 @@ api_router.include_router(voice.router)
 api_router.include_router(languages.router)
 api_router.include_router(mindmaps.router)
 api_router.include_router(diagrams.router)
+api_router.include_router(videos.router)
+api_router.include_router(videos.media_router)

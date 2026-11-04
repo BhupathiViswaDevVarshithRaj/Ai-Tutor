@@ -121,6 +121,8 @@ export function signedInApi(extra: Record<string, Handler> = {}, user: User = TE
     'GET /health/ready': healthy,
     'GET /lessons': () => jsonResponse(EMPTY_PAGE),
     'GET /conversations': () => jsonResponse(EMPTY_PAGE),
+    'GET /videos': () => jsonResponse([]),
+    'GET /videos/worker': () => jsonResponse({ online: true }),
     'GET /tutor/info': () =>
       jsonResponse({ provider: 'mock', is_mock: true, tutor_model: 'mock-tutor', structured_model: 'mock-tutor' }),
     'GET /speech/info': () => jsonResponse(MOCK_SPEECH_INFO),

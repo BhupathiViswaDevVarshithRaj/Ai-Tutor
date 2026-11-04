@@ -85,7 +85,10 @@ CONSTANTS = {"pi", "e"}
 _TOKEN = re.compile(r"\s*(?:(\d+(?:\.\d+)?|\.\d+)|([A-Za-z]+)|(\*\*|[-+*/^(),]))")
 
 
-def tokenize(expression: str) -> list[str]:
+X_ONLY = frozenset({"x"})
+
+
+def tokenize(expression: str, variables: frozenset[str] = X_ONLY) -> list[str]:
     tokens, pos = [], 0
     text = expression.strip()
     while pos < len(text):
@@ -94,7 +97,7 @@ def tokenize(expression: str) -> list[str]:
             raise DiagramError(f"Unexpected character in '{expression}'.")
         number, name, op = match.groups()
         token = number or (name.lower() if name else None) or op
-        if name and token not in FUNCTIONS | CONSTANTS | {"x"}:
+        if name and token not in FUNCTIONS | CONSTANTS | variables:
             raise DiagramError(f"'{name}' isn't allowed in a formula.")
         tokens.append("^" if token == "**" else token)
         pos = match.end()
@@ -103,15 +106,15 @@ def tokenize(expression: str) -> list[str]:
     return tokens
 
 
-def parse_expression(expression: str) -> tuple:
-    """Parse a formula in x into a small tree, or raise DiagramError (grammar below).
+def parse_expression(expression: str, variables: frozenset[str] = X_ONLY) -> tuple:
+    """Parse a formula in `variables` (x by default) into a small tree, or raise DiagramError.
 
     expr := term (('+'|'-') term)* ; term := unary (('*'|'/') unary)* ;
     unary := ('+'|'-') unary | power ; power := atom ('^' unary)? ;
-    atom := number | 'x' | constant | function '(' expr ')' | '(' expr ')'
+    atom := number | variable | constant | function '(' expr ')' | '(' expr ')'
     Implicit multiplication (e.g. '2x') is not allowed: the model is asked to write '2*x'.
     """
-    tokens = tokenize(expression)
+    tokens = tokenize(expression, variables)
     pos = 0
 
     def peek() -> str | None:
@@ -164,8 +167,8 @@ def parse_expression(expression: str) -> tuple:
             inner = expr()
             take(")")
             return inner
-        if token == "x":
-            return ("x",)
+        if token in variables:
+            return ("var", token)
         if token in CONSTANTS:
             return ("num", math.pi if token == "pi" else math.e)
         if re.fullmatch(r"\d+(\.\d+)?|\.\d+", token):
@@ -178,9 +181,9 @@ def parse_expression(expression: str) -> tuple:
     return tree
 
 
-def check_expression(expression: str) -> None:
-    """Raise DiagramError unless `expression` is a valid formula in x."""
-    parse_expression(expression)
+def check_expression(expression: str, variables: frozenset[str] = X_ONLY) -> None:
+    """Raise DiagramError unless `expression` is a valid formula in `variables` (x by default)."""
+    parse_expression(expression, variables)
 
 
 _FN = {
@@ -195,17 +198,17 @@ _FN = {
 }
 
 
-def _evaluate(node: tuple, x: float) -> float:
+def _evaluate(node: tuple, env: dict[str, float]) -> float:
     kind = node[0]
     if kind == "num":
         return node[1]
-    if kind == "x":
-        return x
+    if kind == "var":
+        return env[node[1]]
     if kind == "neg":
-        return -_evaluate(node[1], x)
+        return -_evaluate(node[1], env)
     if kind == "fn":
-        return _FN[node[1]](_evaluate(node[2], x))
-    a, b = _evaluate(node[1], x), _evaluate(node[2], x)
+        return _FN[node[1]](_evaluate(node[2], env))
+    a, b = _evaluate(node[1], env), _evaluate(node[2], env)
     if kind == "+":
         return a + b
     if kind == "-":
@@ -220,15 +223,24 @@ def _evaluate(node: tuple, x: float) -> float:
 def compile_expression(expression: str):
     """A function of x for a valid formula; NaN where it is undefined (e.g. sqrt(-1), 1/0)."""
     tree = parse_expression(expression)
+    return lambda x: _safe(tree, {"x": x})
 
-    def f(x: float) -> float:
-        try:
-            value = _evaluate(tree, x)
-        except (ValueError, ZeroDivisionError, OverflowError):
-            return math.nan
-        return value if isinstance(value, float | int) and math.isfinite(value) else math.nan
 
-    return f
+XY = frozenset({"x", "y"})
+
+
+def compile_surface(expression: str):
+    """A function of (x, y) for a valid formula in x and y; NaN where it is undefined."""
+    tree = parse_expression(expression, XY)
+    return lambda x, y: _safe(tree, {"x": x, "y": y})
+
+
+def _safe(tree: tuple, env: dict[str, float]) -> float:
+    try:
+        value = _evaluate(tree, env)
+    except (ValueError, ZeroDivisionError, OverflowError):
+        return math.nan
+    return value if isinstance(value, float | int) and math.isfinite(value) else math.nan
 
 
 # --- validation ---------------------------------------------------------------------

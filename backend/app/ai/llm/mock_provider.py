@@ -401,9 +401,9 @@ def _mock_diagram(topic: str, requested: str) -> DiagramSpec:
 
 
 def _mock_video(topic: str) -> VideoScript:
-    """A short, clearly labelled script using four of the templates."""
+    """A short, clearly labelled script using five of the templates, one of them 3D."""
 
-    def scene(template, heading, narration, items=(), caption=""):
+    def scene(template, heading, narration, items=(), caption="", shape=""):
         return Scene(
             template=template,
             heading=heading,
@@ -412,6 +412,8 @@ def _mock_video(topic: str) -> VideoScript:
             expression="",
             x_min=0,
             x_max=1,
+            shape=shape,
+            atoms=[],
             caption=caption,
             narration=narration,
         )
@@ -438,9 +440,16 @@ def _mock_video(topic: str) -> VideoScript:
                 items=["[mock] Step one", "[mock] Step two", "[mock] Step three"],
             ),
             scene(
+                "model3d",
+                "[mock] In 3D",
+                "A real video would turn a model like this to show its shape from every side.",
+                items=["[mock] Turns slowly", "[mock] Labelled"],
+                shape="cube",
+            ),
+            scene(
                 "summary",
                 "[mock] Summary",
-                "Add an Anthropic API key to get real scripts.",
+                "Add a Groq or Anthropic API key to get real scripts.",
                 items=["[mock] Recap one", "[mock] Recap two"],
             ),
         ],

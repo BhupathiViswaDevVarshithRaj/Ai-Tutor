@@ -21,7 +21,12 @@ const POLL_MS = 2000
 const PIPELINE = [
   { label: 'Script', detail: 'Scenes and narration at your level', icon: FileText, tone: 'bg-sun' },
   { label: 'Narration', detail: 'Spoken by the configured voice', icon: Mic, tone: 'bg-tangerine' },
-  { label: 'Animated scenes', detail: 'Drawn with Manim templates', icon: Clapperboard, tone: 'bg-sky' },
+  {
+    label: 'Animated scenes',
+    detail: 'Diagrams, graphs and turning 3D models: solids, molecules, surfaces',
+    icon: Clapperboard,
+    tone: 'bg-sky',
+  },
   { label: 'Subtitles', detail: 'Timed to the narration', icon: Captions, tone: 'bg-rose' },
   { label: 'Final video', detail: 'Joined with FFmpeg', icon: Film, tone: 'bg-brand-500 text-white' },
 ]

@@ -147,10 +147,10 @@ async def test_pipeline_makes_a_silent_video_with_subtitles(api, queue):
 
     done = (await api.get(f"{V}/{job['id']}", headers=headers)).json()
     assert done["status"] == "completed" and done["progress"] == 100
-    assert done["title"] == "Photosynthesis (mock video)" and done["scene_count"] == 4
+    assert done["title"] == "Photosynthesis (mock video)" and done["scene_count"] == 5
     # The mock voice is tones, not speech: the video is silent with subtitles.
     assert done["narrated"] is False
-    assert [t for t, _, _ in renderer.calls] == ["title", "bullets", "flow", "summary"]
+    assert [t for t, _, _ in renderer.calls] == ["title", "bullets", "flow", "model3d", "summary"]
     assert all(lang == "hi" for _, _, lang in renderer.calls)
     statuses = [s for s, _ in stages]
     assert statuses[0] == VideoStatus.SCRIPTING and statuses[-1] == VideoStatus.COMPLETED

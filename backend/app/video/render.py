@@ -10,6 +10,7 @@ from app.video.pipeline import RenderError
 from app.video.script import Scene
 
 SCENES_FILE = Path(__file__).with_name("manim_scenes.py")
+APP_ROOT = Path(__file__).resolve().parents[2]  # the folder that contains the `app` package
 SCENE_ENV = "AITUTOR_SCENE"
 RENDER_TIMEOUT_SECONDS = 600
 FPS = {"l": 15, "m": 30, "h": 60}
@@ -76,12 +77,13 @@ class ManimRenderer:
                 "-o",
                 f"scene{index}",
                 str(SCENES_FILE),
-                "TemplateScene",
+                "Template3DScene" if scene.template.endswith("3d") else "TemplateScene",
             ],
             RENDER_TIMEOUT_SECONDS,
             f"Rendering scene {index + 1}",
-            # The scene reads its description from this variable (see manim_scenes.py).
-            env={**os.environ, SCENE_ENV: str(spec)},
+            # The scene reads its description from this variable (see manim_scenes.py), and
+            # imports the same `app` package as this worker (not a copy installed in the image).
+            env={**os.environ, SCENE_ENV: str(spec), "PYTHONPATH": str(APP_ROOT)},
         )
         found = sorted(media.rglob(f"scene{index}.mp4"))
         if not found:

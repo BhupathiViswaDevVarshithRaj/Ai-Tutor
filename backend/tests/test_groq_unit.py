@@ -3,6 +3,8 @@
 import json
 from types import SimpleNamespace
 
+import groq
+import httpx
 import pytest
 from pydantic import BaseModel, Field
 
@@ -30,16 +32,22 @@ async def aiter(items):
 
 
 class FakeCompletions:
-    """Replies with stream chunks (stream=True) or with each of `replies` in turn."""
+    """Replies with stream chunks (stream=True) or with each of `replies` in turn.
 
-    def __init__(self, *, chunks=(), replies=(), finish="stop", error=None):
+    `error` is raised on every call; each of `errors` once, before any reply.
+    """
+
+    def __init__(self, *, chunks=(), replies=(), finish="stop", error=None, errors=()):
         self.chunks, self.replies, self.finish, self.error = chunks, list(replies), finish, error
+        self.errors = list(errors)
         self.calls: list[dict] = []
 
     async def create(self, **kwargs):
         self.calls.append(kwargs)
         if self.error:
             raise self.error
+        if self.errors:
+            raise self.errors.pop(0)
         if kwargs.get("stream"):
             return aiter(self.chunks)
         message = SimpleNamespace(content=self.replies.pop(0))
@@ -110,8 +118,32 @@ async def test_parse_retries_once_with_the_validation_error():
     assert "did not pass validation" in retry[-1]["content"]
 
 
-async def test_parse_gives_up_after_two_bad_replies_and_on_truncation():
-    bad = FakeCompletions(replies=["not json", "still not json"])
+def bad_request(code: str) -> groq.BadRequestError:
+    request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    return groq.BadRequestError(
+        "400",
+        response=httpx.Response(400, request=request),
+        body={"error": {"code": code, "message": "nope"}},
+    )
+
+
+async def test_parse_samples_again_when_groq_rejects_the_schema():
+    fake = FakeCompletions(errors=[bad_request("json_validate_failed")], replies=[json.dumps(PLAN)])
+    result = await provider_with(fake).parse(
+        system="S", messages=[ChatMessage("user", "x")], schema=LessonPlan
+    )
+    assert result.value.title == "t" and len(fake.calls) == 2
+    # Any other bad request is a real error, not retried.
+    other = FakeCompletions(errors=[bad_request("model_not_found")], replies=[json.dumps(PLAN)])
+    with pytest.raises(LLMError):
+        await provider_with(other).parse(
+            system="S", messages=[ChatMessage("user", "x")], schema=LessonPlan
+        )
+    assert len(other.calls) == 1
+
+
+async def test_parse_gives_up_after_three_bad_replies_and_on_truncation():
+    bad = FakeCompletions(replies=["not json", "still not json", "nor this"])
     with pytest.raises(LLMError, match="wrong format"):
         await provider_with(bad).parse(
             system="S", messages=[ChatMessage("user", "x")], schema=LessonPlan

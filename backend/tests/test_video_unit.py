@@ -1,11 +1,14 @@
 """Unit tests for video scripts, timing, subtitles, storage and signed media links."""
 
+import math
 import uuid
 
 import pytest
 
+from app.ai.diagram import compile_surface
 from app.ai.llm.base import LLMError
-from app.video.script import Scene, VideoScript, validate_script
+from app.video.geometry3d import bond_angle, bond_directions
+from app.video.script import GEOMETRIES, Scene, VideoScript, validate_script
 from app.video.storage import LocalMediaStorage, check_media_token, media_token
 from app.video.timing import (
     MIN_SCENE_SECONDS,
@@ -27,6 +30,8 @@ def scene(template="bullets", heading="Heading", narration="Some narration.", **
         expression="",
         x_min=0,
         x_max=1,
+        shape="",
+        atoms=[],
         caption="",
         narration=narration,
     )
@@ -68,6 +73,100 @@ def test_long_text_is_trimmed():
 def test_too_few_usable_scenes_is_an_error():
     with pytest.raises(LLMError):
         validate_script(VideoScript(title="T", scenes=[scene(narration="")]), "T")
+
+
+def test_3d_scenes_are_checked_and_normalised():
+    script = VideoScript(
+        title="Shapes",
+        scenes=[  # 8 scenes, the most a script may have; a title card is added in front
+            scene(template="model3d", shape="Square Pyramid"),  # normalised
+            scene(template="model3d", shape="dodecagon"),  # unknown solid
+            scene(template="molecule3d", shape="bent", atoms=["O", "H", "H"]),
+            scene(template="molecule3d", shape="tetrahedral", atoms=["C", "H"]),  # 1 of 4 bonds
+            scene(template="molecule3d", shape="linear", atoms=["c", "o"]),  # not symbols
+            scene(template="surface3d", expression="x^2 - y^2", x_min=-2, x_max=2),
+            scene(template="surface3d", expression="x^2 + z"),  # z isn't a variable
+            scene(template="summary"),
+        ],
+    )
+    fixed = validate_script(script, "Shapes")
+    assert [(s.template, s.shape) for s in fixed.scenes] == [
+        ("title", ""),
+        ("model3d", "square_pyramid"),
+        ("molecule3d", "bent"),
+        ("summary", ""),
+    ]
+    assert fixed.scenes[2].atoms == ["O", "H", "H"]
+
+
+def test_at_most_two_3d_scenes_are_kept():
+    solid = scene(template="model3d", shape="cube")
+    fixed = validate_script(
+        VideoScript(title="T", scenes=[scene(template="title"), solid, solid, solid, scene()]),
+        "T",
+    )
+    assert [s.template for s in fixed.scenes] == ["title", "model3d", "model3d", "bullets"]
+
+
+def test_surface_formulas_use_x_and_y_and_plots_only_x():
+    surface = scene(template="surface3d", expression="sin(x)*cos(y)", x_min=-3, x_max=3)
+    plot = scene(template="plot", expression="x*y")
+    fixed = validate_script(
+        VideoScript(title="T", scenes=[scene(template="title"), surface, plot, scene()]), "T"
+    )
+    assert [s.template for s in fixed.scenes] == ["title", "surface3d", "bullets"]
+    f = compile_surface("x^2 - y^2")
+    assert f(2, 1) == 3 and math.isnan(compile_surface("sqrt(x - y)")(0, 1))
+
+
+@pytest.mark.parametrize(
+    ("written", "kept"),
+    [
+        ("z = x^2 + y^2", "x^2 + y^2"),
+        ("f(x, y) = sin(x)·cos(y)", "sin(x)*cos(y)"),
+        ("x² − y²", "x^2 - y^2"),
+    ],
+)
+def test_models_way_of_writing_surfaces_is_accepted(written, kept):
+    surface = scene(template="surface3d", expression=written, x_min=-2, x_max=2)
+    fixed = validate_script(VideoScript(title="T", scenes=[surface, scene(), scene()]), "T")
+    assert fixed.scenes[1].expression == kept
+
+
+def test_plots_written_as_y_equals_are_accepted():
+    plot = scene(template="plot", expression="y = 2*x − 1", x_min=-1, x_max=1)
+    fixed = validate_script(VideoScript(title="T", scenes=[plot, scene(), scene()]), "T")
+    assert fixed.scenes[1].expression == "2*x - 1"
+
+
+@pytest.mark.parametrize(
+    ("geometry", "angle"),
+    [
+        ("linear", 180),
+        ("bent", 104.5),
+        ("trigonal_planar", 120),
+        ("trigonal_pyramidal", 107),
+        ("tetrahedral", 109.47),
+    ],
+)
+def test_molecule_shapes_have_textbook_bond_angles(geometry, angle):
+    assert bond_angle(geometry) == pytest.approx(angle, abs=0.05)
+
+
+def test_every_geometry_has_unit_bonds_for_its_atom_counts():
+    for geometry, counts in GEOMETRIES.items():
+        for count in counts:
+            directions = bond_directions(geometry, count)
+            assert len(directions) == count
+            for d in directions:
+                assert math.dist(d, (0, 0, 0)) == pytest.approx(1)
+    # Octahedral bonds point along ±x, ±y, ±z: all at 90° or 180° to each other.
+    octa = bond_directions("octahedral", 6)
+    assert {round(sum(a * b for a, b in zip(p, q, strict=True))) for p in octa for q in octa} == {
+        -1,
+        0,
+        1,
+    }
 
 
 # --- timing and subtitles -------------------------------------------------------------

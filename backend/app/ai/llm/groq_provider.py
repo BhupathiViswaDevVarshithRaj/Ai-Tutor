@@ -3,7 +3,8 @@
 Structured output uses Groq's strict `json_schema` mode, which needs every property listed in
 `required` and every object closed (`additionalProperties: false`). `strict_schema` converts a
 Pydantic schema to that form; the result is still validated against the Pydantic model, and a
-reply that fails validation is retried once with the validation error.
+reply that fails validation is retried with the validation error, and one Groq rejects as
+breaking the schema (400 json_validate_failed) is sampled again, up to PARSE_ATTEMPTS calls.
 """
 
 import copy
@@ -43,7 +44,7 @@ _LIMITS = {
     "pattern": "matching {}",
 }
 _DROP = {"default", "format", "discriminator", "uniqueItems"}
-PARSE_ATTEMPTS = 2
+PARSE_ATTEMPTS = 3
 
 
 def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -84,6 +85,12 @@ def _usage(raw: Any) -> Usage:
         input_tokens=getattr(raw, "prompt_tokens", None),
         output_tokens=getattr(raw, "completion_tokens", None),
     )
+
+
+def _error_code(exc: groq.APIStatusError) -> str | None:
+    body = exc.body if isinstance(exc.body, dict) else {}
+    error = body.get("error", body)
+    return error.get("code") if isinstance(error, dict) else None
 
 
 def _map_error(exc: Exception) -> LLMError:
@@ -177,6 +184,13 @@ class GroqProvider:
                     max_completion_tokens=self.settings.llm_max_tokens,
                     response_format=response_format,
                 )
+            except groq.BadRequestError as exc:
+                # Groq checks strict output itself and answers 400 json_validate_failed when
+                # the model broke the schema (e.g. a misspelt key): sample again.
+                if _error_code(exc) != "json_validate_failed":
+                    raise _map_error(exc) from exc
+                logger.warning("Groq output broke the schema (attempt %d)", attempt + 1)
+                continue
             except Exception as exc:  # noqa: BLE001
                 raise _map_error(exc) from exc
 

@@ -13,6 +13,7 @@ import { SummaryCard } from '../features/tutor/SummaryCard'
 import { LessonMindMapCard } from '../features/mindmap/LessonMindMapCard'
 import { LessonDiagramCard } from '../features/whiteboard/LessonDiagramCard'
 import { LessonVideoCard } from '../features/video/LessonVideoCard'
+import { LessonQuizCard } from '../features/quiz/LessonQuizCard'
 import { MockBadge } from '../features/tutor/MockBadge'
 import { useTutorChat } from '../features/tutor/useTutorChat'
 import { ApiError } from '../lib/api/client'
@@ -72,6 +73,7 @@ function LessonView({
             onStudy={(title) => void chat.send(`Let's study "${title}".`)}
           />
           <SummaryCard lesson={lesson} disabled={chat.busy || chat.messages.length === 0} />
+          <LessonQuizCard lesson={lesson} />
           <LessonMindMapCard lesson={lesson} />
           <LessonDiagramCard lesson={lesson} />
           <LessonVideoCard lesson={lesson} />

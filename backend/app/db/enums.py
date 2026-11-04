@@ -85,3 +85,8 @@ class VideoStatus(StrEnum):
     @property
     def active(self) -> bool:
         return self not in (VideoStatus.COMPLETED, VideoStatus.FAILED, VideoStatus.CANCELLED)
+
+
+class QuestionType(StrEnum):
+    MCQ = "mcq"
+    SHORT_ANSWER = "short_answer"

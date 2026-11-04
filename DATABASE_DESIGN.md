@@ -88,27 +88,27 @@ Indexes: `(user_id, created_at desc)`, `(status)` for worker housekeeping.
 ### media_assets (built in Phase 12)
 `id`, `user_id fk`, `kind enum(audio, video, subtitle, image, document)`, `mime_type`, `storage_key text unique`, `size_bytes bigint`, `duration_ms int null`, `language null`, `meta jsonb`, `created_at`. Served only through authenticated routes or short-lived signed URLs.
 
-### quizzes
-`id`, `user_id fk`, `lesson_id fk null`, `topic`, `language`, `level`, `title`, `question_count int`, `created_at`.
+### quizzes (built in Phase 13)
+`id`, `user_id fk`, `lesson_id fk null`, `title`, `topic`, `focus null` (lesson section for a quick check), `language`, `level`, `question_types` (mixed / mcq / short_answer), `question_count smallint`, `created_at`.
 
 ### quiz_questions
-`id`, `quiz_id fk cascade`, `position int`, `qtype enum(mcq, short_answer)`, `prompt text`, `options jsonb null` (MCQ), `correct_answer text`, `explanation text`, `concept text` (used for weak-topic detection), `difficulty smallint`. Unique `(quiz_id, position)`.
+`id`, `quiz_id fk cascade`, `position int`, `qtype enum(mcq, short_answer)`, `prompt text`, `options jsonb null` (MCQ), `correct_answer text`, `accepted_answers jsonb` (other fully right short answers), `explanation text`, `concept text` (used for weak-topic detection), `difficulty smallint`. Unique `(quiz_id, position)`.
 
 ### quiz_submissions
-`id`, `quiz_id fk`, `user_id fk`, `score numeric(5,2)`, `max_score numeric(5,2)`, `duration_seconds int`, `feedback jsonb` (per-concept breakdown, recommendations), `submitted_at`. Index `(user_id, submitted_at desc)`.
+`id`, `quiz_id fk`, `user_id fk`, `score float`, `max_score float`, `duration_seconds int`, `feedback jsonb` (per-concept breakdown, recommendations), `submitted_at`. Index `(user_id, submitted_at desc)`.
 
 ### quiz_answers
-`id`, `submission_id fk cascade`, `question_id fk`, `answer text`, `is_correct bool`, `score numeric(4,2)`, `grader_feedback text`.
+`id`, `submission_id fk cascade`, `question_id fk`, `answer text`, `is_correct bool`, `score float` (0, 0.5, 1), `grader_feedback text null`, `graded_by` (rule / model).
 
 ### topic_mastery (the "learning progress" table)
 Per user and concept.
-`id`, `user_id fk`, `topic text` (normalised lowercase), `concept text`, `mastery numeric(4,3) 0..1` (exponential moving average of evidence), `evidence_count int`, `last_assessed_at`, `next_review_at` (spaced-repetition hint), `updated_at`.
-Unique `(user_id, topic, concept)`. Index `(user_id, mastery)` for weak-topic queries.
+(Built in Phase 13.) `id`, `user_id fk`, `topic_key` + `topic` (normalised key and display text), `concept_key` + `concept`, `mastery numeric(4,3) 0..1` (exponential moving average of evidence), `evidence_count int`, `last_assessed_at`, `next_review_at` (spaced-repetition hint), `updated_at`.
+Unique `(user_id, topic_key, concept_key)`. Index `(user_id, mastery)` for weak-topic queries.
 
 ### learning_sessions
 Time tracking.
 `id`, `user_id fk`, `lesson_id fk null`, `activity enum(chat, voice, video, mindmap, diagram, quiz)`, `started_at`, `ended_at`, `duration_seconds int`. Index `(user_id, started_at desc)`.
-Total learning time and streaks are aggregated from this table.
+Not built in Phase 13 (D-087): streaks and active days are derived from existing activity records instead.
 
 ### language_enrollments (Phase 9)
 A learner's world-language course and CEFR level.
@@ -138,8 +138,8 @@ Course progress (words learned/mastered/due, per-skill averages, streak) is comp
 5. `0005_mind_maps` (Phase 10, built): mind_maps.
 6. `0006_diagrams` (Phase 11, built): diagrams.
 7. `0007_media_and_video_jobs` (Phase 12, built): media_assets, video_jobs; `messages.audio_asset_id` now references media_assets (SET NULL).
-8. `0008_assessment`: quizzes, quiz_questions, quiz_submissions, quiz_answers.
-9. `0009_progress`: topic_mastery, learning_sessions.
+8. `0008_quizzes` (Phase 13, built): quizzes, quiz_questions, quiz_submissions, quiz_answers.
+9. `0009_topic_mastery` (Phase 13, built): topic_mastery (learning_sessions deferred).
 10. `0010_rag` (later): learning_resources, document_chunks, embeddings + HNSW. (RAG was deferred from Phase 4, so its migration moves after the others.)
 
 Each migration ships with the phase that needs it, so we do not run unused schema ahead of time.

@@ -77,15 +77,13 @@ const QUIZZES: NavItem = {
   icon: ClipboardCheck,
   accent: 'sun',
   description: 'Check understanding and find what to revise.',
-  phase: 13,
 }
 const PROGRESS: NavItem = {
   to: '/app/progress',
   label: 'My Progress',
   icon: TrendingUp,
   accent: 'mint',
-  description: 'Scores, learning time and topics to revise.',
-  phase: 13,
+  description: 'Scores, active days and topics to revise.',
 }
 const HISTORY: NavItem = {
   to: '/app/history',

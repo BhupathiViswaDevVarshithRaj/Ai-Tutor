@@ -5,7 +5,7 @@ import uuid
 
 from arq.connections import RedisSettings
 
-from app.ai.llm.factory import get_llm
+from app.ai.llm.factory import get_video_llm
 from app.ai.speech.factory import get_tts
 from app.core.config import get_settings
 from app.core.logging import configure_logging
@@ -23,7 +23,7 @@ async def startup(ctx: dict) -> None:
     configure_logging()
     settings = get_settings()
     ctx["deps"] = VideoDeps(
-        llm=get_llm(),
+        llm=get_video_llm(),
         tts=get_tts(),
         renderer=ManimRenderer(settings.video_quality),
         compositor=FFmpegCompositor(settings.video_quality),

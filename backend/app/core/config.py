@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     llm_model_tutor: str = "claude-opus-5-5"
     llm_model_structured: str = "claude-opus-5-5"
     groq_api_key: str = ""
+    # Optional separate key for Video Studio scripts (falls back to GROQ_API_KEY). Groq rate
+    # limits are per organisation: two keys of one account still share one budget.
+    groq_video_api_key: str = ""
     # Structured output needs a model with Groq strict json_schema support.
     groq_model_tutor: str = "openai/gpt-oss-120b"
     groq_model_structured: str = "openai/gpt-oss-120b"

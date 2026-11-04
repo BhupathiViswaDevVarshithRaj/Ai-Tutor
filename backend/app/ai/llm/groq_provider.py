@@ -112,10 +112,15 @@ class GroqProvider:
     name = "groq"
     is_mock = False
 
-    def __init__(self, settings: Settings, client: groq.AsyncGroq | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        client: groq.AsyncGroq | None = None,
+        api_key: str | None = None,
+    ) -> None:
         self.settings = settings
         self.client = client or groq.AsyncGroq(
-            api_key=settings.groq_api_key,
+            api_key=api_key or settings.groq_api_key,
             timeout=settings.llm_timeout_seconds,
             max_retries=settings.llm_max_retries,
         )

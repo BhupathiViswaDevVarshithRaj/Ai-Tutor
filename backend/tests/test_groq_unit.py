@@ -9,7 +9,7 @@ import pytest
 from pydantic import BaseModel, Field
 
 from app.ai.llm.base import ChatMessage, LLMError, StreamDone, TextDelta
-from app.ai.llm.factory import get_llm
+from app.ai.llm.factory import get_llm, get_video_llm
 from app.ai.llm.groq_provider import GroqProvider, strict_schema
 from app.ai.quiz import QuizDraft
 from app.ai.schemas import LessonPlan
@@ -206,6 +206,20 @@ def test_factory_auto_prefers_anthropic_then_groq(fresh_factory, monkeypatch):
     monkeypatch.setattr(settings, "llm_provider", "auto")
     monkeypatch.setattr(settings, "groq_api_key", "gsk-test")
     assert isinstance(get_llm(), GroqProvider)
+
+
+def test_video_studio_uses_its_own_key_when_set(fresh_factory, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "llm_provider", "groq")
+    monkeypatch.setattr(settings, "groq_api_key", "gsk-tutor")
+    get_video_llm.cache_clear()
+    assert get_video_llm() is get_llm()  # no video key: the shared provider
+    monkeypatch.setattr(settings, "groq_video_api_key", "gsk-video")
+    get_video_llm.cache_clear()
+    video = get_video_llm()
+    assert isinstance(video, GroqProvider) and video is not get_llm()
+    assert video.client.api_key == "gsk-video" and get_llm().client.api_key == "gsk-tutor"
+    get_video_llm.cache_clear()
 
 
 def test_factory_refuses_forced_groq_without_key(fresh_factory, monkeypatch):

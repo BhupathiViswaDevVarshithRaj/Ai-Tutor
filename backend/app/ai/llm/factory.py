@@ -36,3 +36,15 @@ def get_llm() -> LLMProvider:
     from app.ai.llm.mock_provider import MockLLMProvider
 
     return MockLLMProvider(delay_seconds=settings.mock_stream_delay_seconds)
+
+
+@lru_cache
+def get_video_llm() -> LLMProvider:
+    """Provider for Video Studio scripts: Groq with GROQ_VIDEO_API_KEY when that is set,
+    otherwise the same provider as everything else."""
+    settings = get_settings()
+    if provider_name(settings) == "groq" and settings.groq_video_api_key:
+        from app.ai.llm.groq_provider import GroqProvider
+
+        return GroqProvider(settings, api_key=settings.groq_video_api_key)
+    return get_llm()

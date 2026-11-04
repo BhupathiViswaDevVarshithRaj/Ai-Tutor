@@ -21,6 +21,7 @@ function job(overrides: Partial<VideoJob> = {}): VideoJob {
     error: null,
     narrated: false,
     scene_count: 0,
+    image_credits: [],
     duration_ms: null,
     video_url: null,
     subtitles_url: null,
@@ -36,6 +37,14 @@ const DONE = job({
   progress: 100,
   stage_detail: 'Ready',
   scene_count: 4,
+  image_credits: [
+    {
+      scene: 2,
+      title: 'File:Leaf 1 web.jpg',
+      credit: 'Image: Jon Sullivan · Public domain · Wikimedia Commons',
+      source_url: 'https://commons.wikimedia.org/wiki/File:Leaf_1_web.jpg',
+    },
+  ],
   duration_ms: 65_000,
   video_url: '/api/v1/media/a1?token=1.sig',
   subtitles_url: '/api/v1/media/a2?token=1.sig',
@@ -73,6 +82,12 @@ describe('Video Studio', () => {
     expect(screen.getByText(/Silent with subtitles/)).toBeInTheDocument()
     expect(screen.getByText(/1:05 · 4 scenes/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Download/ })).toHaveAttribute('href', DONE.video_url)
+    // Pictures from Wikimedia Commons are credited, as their licences require.
+    expect(screen.getByText('Picture credits (1)')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Leaf 1 web.jpg' })).toHaveAttribute(
+      'href',
+      'https://commons.wikimedia.org/wiki/File:Leaf_1_web.jpg',
+    )
   })
 
   it('cancels a running video and deletes a finished one', async () => {

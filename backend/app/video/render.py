@@ -6,10 +6,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from app.video.images import FoundImage
 from app.video.pipeline import RenderError
 from app.video.script import Scene
 
 SCENES_FILE = Path(__file__).with_name("manim_scenes.py")
+APP_ROOT = Path(__file__).resolve().parents[2]  # the folder that contains the `app` package
 SCENE_ENV = "AITUTOR_SCENE"
 RENDER_TIMEOUT_SECONDS = 600
 FPS = {"l": 15, "m": 30, "h": 60}
@@ -46,7 +48,13 @@ class ManimRenderer:
         self.quality = quality
 
     def render(
-        self, scene: Scene, seconds: float, index: int, workdir: Path, language: str
+        self,
+        scene: Scene,
+        seconds: float,
+        index: int,
+        workdir: Path,
+        language: str,
+        image: FoundImage | None = None,
     ) -> Path:
         spec = workdir / f"scene{index}.json"
         spec.write_text(
@@ -55,6 +63,8 @@ class ManimRenderer:
                     **scene.model_dump(),
                     "seconds": seconds,
                     "font": FONTS.get(language, "Noto Sans"),
+                    "image": str(image.path) if image else None,
+                    "credit": image.credit if image else "",
                 },
                 ensure_ascii=False,
             ),
@@ -76,12 +86,13 @@ class ManimRenderer:
                 "-o",
                 f"scene{index}",
                 str(SCENES_FILE),
-                "TemplateScene",
+                "Template3DScene" if scene.template.endswith("3d") else "TemplateScene",
             ],
             RENDER_TIMEOUT_SECONDS,
             f"Rendering scene {index + 1}",
-            # The scene reads its description from this variable (see manim_scenes.py).
-            env={**os.environ, SCENE_ENV: str(spec)},
+            # The scene reads its description from this variable (see manim_scenes.py), and
+            # imports the same `app` package as this worker (not a copy installed in the image).
+            env={**os.environ, SCENE_ENV: str(spec), "PYTHONPATH": str(APP_ROOT)},
         )
         found = sorted(media.rglob(f"scene{index}.mp4"))
         if not found:

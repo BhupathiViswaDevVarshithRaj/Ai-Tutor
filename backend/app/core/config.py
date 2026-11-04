@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     llm_model_tutor: str = "claude-opus-5-5"
     llm_model_structured: str = "claude-opus-5-5"
     groq_api_key: str = ""
+    # Optional separate key for Video Studio scripts (falls back to GROQ_API_KEY). Groq rate
+    # limits are per organisation: two keys of one account still share one budget.
+    groq_video_api_key: str = ""
     # Structured output needs a model with Groq strict json_schema support.
     groq_model_tutor: str = "openai/gpt-oss-120b"
     groq_model_structured: str = "openai/gpt-oss-120b"
@@ -96,6 +99,9 @@ class Settings(BaseSettings):
     video_job_timeout_seconds: int = 1200
     video_rate_limit: int = 5
     video_rate_window_seconds: int = 3600
+    # Contact details sent in the User-Agent to Wikimedia Commons (their policy requires a
+    # website or email); used when videos fetch real pictures.
+    media_contact: str = "https://github.com/BhupathiViswaDevVarshithRaj/Ai-Tutor"
     # Signed links for <video>/<track> elements, which can't send an Authorization header.
     media_url_ttl_seconds: int = 3600
 

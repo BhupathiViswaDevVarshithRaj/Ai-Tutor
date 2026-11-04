@@ -1,8 +1,9 @@
 """Pre-written, parameterised Manim scenes (run by `manim` inside the video worker image).
 
-One scene class reads a JSON description (path in the AITUTOR_SCENE variable) and
-draws one of six templates. Nothing in the description is executed: it only supplies text,
-dates and a formula checked by the same whitelisted grammar as the whiteboard.
+Two scene classes read a JSON description (path in the AITUTOR_SCENE variable):
+`TemplateScene` draws the 2D templates and `Template3DScene` the 3D ones (solids, molecules,
+surfaces). Nothing in the description is executed: it only supplies text, dates, a shape name,
+element symbols and formulas checked by the same whitelisted grammar as the whiteboard.
 """
 
 import json
@@ -11,29 +12,49 @@ import os
 import textwrap
 from pathlib import Path
 
+import numpy as np
 from manim import (
+    DEGREES,
     DOWN,
     LEFT,
     ORIGIN,
+    OUT,
     RIGHT,
     UP,
     Arrow,
     Axes,
+    Cone,
     Create,
+    Cube,
+    Cylinder,
+    DashedLine,
     Dot,
     FadeIn,
+    Group,
     GrowArrow,
+    ImageMobject,
     Line,
+    Line3D,
+    Octahedron,
+    Polyhedron,
+    Prism,
     RoundedRectangle,
     Scene,
+    Sphere,
+    Surface,
+    Tetrahedron,
     Text,
+    ThreeDAxes,
+    ThreeDScene,
+    Torus,
     VGroup,
     VMobject,
     Write,
     config,
 )
 
-from app.ai.diagram import compile_expression
+from app.ai.diagram import compile_expression, compile_surface
+from app.video.geometry3d import bond_directions, element_style
 
 PAPER = "#FFFDF8"
 INK = "#1F1B2D"
@@ -110,6 +131,46 @@ class TemplateScene(Scene):
         return 0.8 + step * len(rows)
 
     _summary = _bullets
+
+    def _image(self, spec, font, total) -> float:
+        """A real picture (downloaded by the pipeline) with its facts and credit line."""
+        heading = self._heading(spec, font)
+        facts = spec["items"]
+        picture = ImageMobject(spec["image"])
+        width, height = (6.6, 4.9) if facts else (11.6, 5.1)
+        picture.scale_to_fit_width(width)
+        if picture.height > height:
+            picture.scale_to_fit_height(height)
+        border = RoundedRectangle(
+            corner_radius=0.15,
+            width=picture.width + 0.16,
+            height=picture.height + 0.16,
+            stroke_color=INK,
+            stroke_width=4,
+        )
+        credit = _fit(_text(spec.get("credit") or "", font, 15, 110, color=MUTED), height=0.4)
+        credit.to_edge(DOWN, buff=0.12)
+        # Centred in the space between the heading and the credit line; with facts, in the
+        # left half (the facts take the right half).
+        middle = (heading.get_bottom()[1] - 0.3 + credit.get_top()[1] + 0.1) / 2
+        framed = Group(picture, border).move_to([-3.4 if facts else 0, middle, 0])
+        self.play(FadeIn(picture, scale=0.96), Create(border), FadeIn(credit), run_time=1.0)
+        # A slow push-in keeps a still picture alive (about 6% over 15 s).
+        framed.add_updater(lambda m, dt: m.scale(1 + 0.004 * dt))
+        used = 1.8
+        if facts:
+            rows = Group()
+            for i, item in enumerate(facts):
+                dot = Dot(radius=0.09, color=ACCENTS[(i + 1) % len(ACCENTS)])
+                label = _text(item, font, 26, 22)
+                rows.add(VGroup(dot, label.next_to(dot, RIGHT, buff=0.25)))
+            rows.arrange(DOWN, aligned_edge=LEFT, buff=0.42)
+            _fit(rows, width=5.0, height=4.6).move_to([3.7, middle, 0])
+            step = min(1.0, max(0.4, total * 0.5 / len(rows)))
+            for row in rows:
+                self.play(FadeIn(row, shift=LEFT * 0.2), run_time=step)
+            used += step * len(rows)
+        return used
 
     def _flow(self, spec, font, total) -> float:
         heading = self._heading(spec, font)
@@ -200,3 +261,265 @@ class TemplateScene(Scene):
             )
         _ = heading
         return 0.8 + 0.6 + step * n
+
+
+# --- 3D -------------------------------------------------------------------------------
+
+# One full turn of the model every TURN_SECONDS, so every side is seen in a normal scene.
+TURN_SECONDS = 14
+SOLID_STYLE = {"fill_opacity": 0.82, "stroke_color": INK, "stroke_width": 1.5}
+
+
+def _polyhedron(cls, *args, color: str, **kwargs):
+    body = cls(*args, faces_config={"fill_color": color, "fill_opacity": 0.8}, **kwargs)
+    body.graph.set_opacity(0)  # faces only, no vertex dots
+    return body
+
+
+def _solid(shape: str):
+    """The model for `shape` (about 3 units tall) and its measurement lines with labels."""
+    color = ACCENTS[0]
+    dims: list[tuple] = []  # (start, end, label, dashed)
+    if shape == "cube":
+        body = Cube(side_length=2.6, fill_color=color, **SOLID_STYLE)
+        dims.append(((-1.3, -1.3, -1.3), (1.3, -1.3, -1.3), "a", False))
+    elif shape == "cuboid":
+        body = Prism(dimensions=[3.4, 2.0, 1.8], fill_color=color, **SOLID_STYLE)
+        dims += [
+            ((-1.7, -1.0, -0.9), (1.7, -1.0, -0.9), "l", False),
+            ((1.7, -1.0, -0.9), (1.7, 1.0, -0.9), "w", False),
+            ((1.7, -1.0, -0.9), (1.7, -1.0, 0.9), "h", False),
+        ]
+    elif shape in ("sphere", "hemisphere"):
+        v_range = (0, math.pi / 2) if shape == "hemisphere" else (0, math.pi)
+        body = Sphere(radius=1.6, resolution=(18, 36), v_range=v_range)
+        body.set_fill(color, opacity=0.78).set_stroke(INK, width=0.4)
+        dims.append(((0, 0, 0), (1.6, 0, 0), "r", False))
+    elif shape == "cylinder":
+        body = Cylinder(radius=1.2, height=2.8, resolution=(12, 36))
+        body.set_fill(color, opacity=0.8).set_stroke(INK, width=0.4)
+        dims += [
+            ((0, 0, 1.4), (1.2, 0, 1.4), "r", False),
+            ((1.5, 0, -1.4), (1.5, 0, 1.4), "h", True),
+        ]
+    elif shape == "cone":
+        body = Cone(base_radius=1.4, height=2.8, show_base=True, resolution=(12, 36))
+        body.set_fill(color, opacity=0.8).set_stroke(INK, width=0.4)
+        body.move_to(ORIGIN)
+        # Measure from the base: the wide end is the one with points far from the axis.
+        pts = body.get_all_points()
+        top, bottom = pts[:, 2].max(), pts[:, 2].min()
+        wide_at_top = np.abs(pts[pts[:, 2] > top - 0.05][:, :2]).max() > 0.5
+        base_z, tip_z = (top, bottom) if wide_at_top else (bottom, top)
+        dims += [
+            ((0, 0, base_z), (1.4, 0, base_z), "r", False),
+            ((0, 0, base_z), (0, 0, tip_z), "h", True),
+            ((1.4, 0, base_z), (0, 0, tip_z), "l", False),
+        ]
+    elif shape == "square_pyramid":
+        s, h = 1.4, 2.6
+        verts = [(-s, -s, -h / 2), (s, -s, -h / 2), (s, s, -h / 2), (-s, s, -h / 2), (0, 0, h / 2)]
+        faces = [[0, 1, 2, 3], [0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]]
+        body = _polyhedron(Polyhedron, verts, faces, color=color)
+        dims += [
+            ((-s, -s, -h / 2), (s, -s, -h / 2), "a", False),
+            ((0, 0, -h / 2), (0, 0, h / 2), "h", True),
+        ]
+    elif shape == "triangular_prism":
+        r, h = 1.5, 2.8
+        angles = (math.pi / 2, math.pi * 7 / 6, math.pi * 11 / 6)
+        tri = [(r * math.cos(a), r * math.sin(a)) for a in angles]
+        verts = [(x, y, -h / 2) for x, y in tri] + [(x, y, h / 2) for x, y in tri]
+        faces = [[0, 1, 2], [3, 4, 5], [0, 1, 4, 3], [1, 2, 5, 4], [2, 0, 3, 5]]
+        body = _polyhedron(Polyhedron, verts, faces, color=color)
+        x, y = tri[1]
+        dims.append(((x, y, -h / 2), (x, y, h / 2), "h", False))
+    elif shape in ("tetrahedron", "octahedron"):
+        if shape == "tetrahedron":
+            body = _polyhedron(Tetrahedron, edge_length=2.8, color=color)
+        else:
+            body = _polyhedron(Octahedron, edge_length=2.4, color=color)
+        a, b = body.vertex_coords[0], body.vertex_coords[1]
+        dims.append((tuple(a), tuple(b), "a", False))
+    else:  # torus
+        body = Torus(major_radius=1.7, minor_radius=0.6, resolution=(18, 36))
+        body.set_fill(color, opacity=0.8).set_stroke(INK, width=0.3)
+        dims += [((0, 0, 0), (1.7, 0, 0), "R", False), ((1.7, 0, 0), (2.3, 0, 0), "r", False)]
+
+    lines, anchors = VGroup(), VGroup()
+    labels = []
+    for start, end, label, dashed in dims:
+        a, b = np.array(start, dtype=float), np.array(end, dtype=float)
+        kind = DashedLine if dashed else Line
+        lines.add(kind(a, b, color=ACCENTS[1], stroke_width=6))
+        # The label sits just outside the line, away from the solid's axis (or to one side of
+        # a line on the axis), on an invisible point that turns with the model.
+        mid = (a + b) / 2
+        outward = np.array([mid[0], mid[1], 0.0])
+        length = np.linalg.norm(outward)
+        outward = outward / length if length > 0.2 else np.array([-1.0, 0.0, 0.0])
+        anchor = Dot(mid + outward * 0.38, radius=0.01).set_opacity(0)
+        anchors.add(anchor)
+        labels.append((anchor, label))
+    return body, VGroup(lines, anchors), labels
+
+
+def _is_dark(hex_color: str) -> bool:
+    r, g, b = (int(hex_color[i : i + 2], 16) / 255 for i in (1, 3, 5))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.45
+
+
+def _molecule(geometry: str, atoms: list[str]):
+    """Ball-and-stick model: atoms (spheres) and bonds (rods) around the central atom."""
+    bond = 2.3
+    directions = bond_directions(geometry, len(atoms) - 1)
+    positions = [np.zeros(3)] + [np.array(d) * bond for d in directions]
+    rods = VGroup(
+        *(
+            Line3D(positions[0], p, thickness=0.07, color="#8A8494", resolution=8)
+            for p in positions[1:]
+        )
+    )
+    balls = VGroup()
+    for symbol, pos in zip(atoms, positions, strict=True):
+        color, radius = element_style(symbol)
+        ball = Sphere(center=pos, radius=radius * 1.25, resolution=(10, 18))
+        ball.set_fill(color, opacity=1).set_stroke(width=0)
+        balls.add(ball)
+    return balls, rods
+
+
+class Template3DScene(ThreeDScene):
+    """Solids, molecules and surfaces that turn slowly, with a flat heading and fact list."""
+
+    def construct(self):
+        spec = _spec()
+        total = float(spec["seconds"])
+        font = spec["font"]
+        self.set_camera_orientation(phi=68 * DEGREES, theta=-50 * DEGREES)
+        heading = _fit(_text(spec["heading"], font, 38, 36, weight="BOLD"), height=1.2)
+        heading.to_edge(UP, buff=0.4)
+        self.add_fixed_in_frame_mobjects(heading)
+        self.play(Write(heading), run_time=0.8)
+        used = 0.8 + getattr(self, f"_{spec['template']}")(spec, font, total - 0.8)
+        self.wait(max(0.1, total - used))
+
+    # --- helpers
+
+    def _screen_left(self, amount: float) -> np.ndarray:
+        """A world-space offset that appears `amount` units to the left on screen."""
+        rotation = self.camera.generate_rotation_matrix()
+        return rotation.T @ (LEFT * amount)
+
+    def _turn(self, mob, centre) -> None:
+        """Keep `mob` turning about the vertical axis through `centre` for the rest of the scene."""
+        rate = 2 * math.pi / TURN_SECONDS
+        # Its parts were animated in one by one; the updater only runs on what is in the
+        # scene, so swap the separate parts for the whole group.
+        self.remove(*mob.get_family())
+        self.add(mob)
+        mob.add_updater(lambda m, dt: m.rotate(rate * dt, axis=OUT, about_point=centre))
+
+    def _label(
+        self, text: str, font: str, follow, offset=OUT * 0.35, size: float = 30, color: str = INK
+    ):
+        """A label that faces the camera and follows `follow()` (a point that moves)."""
+        label = Text(text, font=font, font_size=size, color=color, weight="BOLD")
+        label.move_to(follow() + offset)
+        label.add_updater(lambda m: m.move_to(follow() + offset))
+        self.add_fixed_orientation_mobjects(label)
+        return label
+
+    def _facts(self, spec, font, budget: float) -> float:
+        """The scene's items, appearing one by one on the right; returns seconds used."""
+        items = spec["items"]
+        if not items:
+            return 0.0
+        rows = VGroup()
+        for i, item in enumerate(items):
+            dot = Dot(radius=0.09, color=ACCENTS[(i + 1) % len(ACCENTS)])
+            label = _text(item, font, 26, 24)
+            rows.add(VGroup(dot, label.next_to(dot, RIGHT, buff=0.25)))
+        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.4)
+        _fit(rows, width=5.4, height=4.8).to_edge(RIGHT, buff=0.6).shift(DOWN * 0.4)
+        step = min(1.0, max(0.4, budget * 0.5 / len(rows)))
+        gap = max(0.0, budget * 0.6 / len(rows) - step)
+        for row in rows:
+            self.add_fixed_in_frame_mobjects(row)
+            self.play(FadeIn(row, shift=LEFT * 0.2), run_time=step)
+            if gap:
+                self.wait(gap)
+        return (step + gap) * len(rows)
+
+    def _place(self, spec) -> np.ndarray:
+        """Where the model goes: left of centre when facts share the screen."""
+        return self._screen_left(2.9) if spec["items"] else np.zeros(3)
+
+    # --- templates (each returns the seconds its animations took)
+
+    def _model3d(self, spec, font, budget) -> float:
+        body, lines, dims = _solid(spec["shape"])
+        model = VGroup(body, lines)
+        centre = self._place(spec)
+        model.shift(centre)
+        self.play(Create(body), run_time=1.6)
+        self.play(Create(lines[0]), run_time=0.8)
+        self._turn(model, centre)
+        for anchor, text in dims:
+            self._label(text, font, anchor.get_center, offset=ORIGIN)
+        return 2.4 + self._facts(spec, font, budget - 2.4)
+
+    def _molecule3d(self, spec, font, budget) -> float:
+        balls, rods = _molecule(spec["shape"], spec["atoms"])
+        model = VGroup(rods, balls)
+        centre = self._place(spec)
+        model.shift(centre)
+        self.play(FadeIn(balls[0], scale=0.5), run_time=0.6)
+        self.play(Create(rods), *(FadeIn(b, scale=0.5) for b in balls[1:]), run_time=1.4)
+        self._turn(model, centre)
+        for ball, symbol in zip(balls, spec["atoms"], strict=True):
+            # Light text on dark atoms (carbon, nitrogen, ...), dark text on light ones.
+            ink = PAPER if _is_dark(element_style(symbol)[0]) else INK
+            self._label(symbol, font, ball.get_center, offset=ORIGIN, size=26, color=ink)
+        return 2.0 + self._facts(spec, font, budget - 2.0)
+
+    def _surface3d(self, spec, font, budget) -> float:
+        f = compile_surface(spec["expression"])
+        lo, hi = spec["x_min"], spec["x_max"]
+        n = 24
+        grid = [lo + (hi - lo) * i / n for i in range(n + 1)]
+        values = sorted(z for x in grid for y in grid if math.isfinite(z := f(x, y)))
+        if not values:
+            values = [-1.0, 1.0]
+        z_lo, z_hi = values[int(len(values) * 0.03)], values[math.ceil(len(values) * 0.97) - 1]
+        if z_hi - z_lo < 1e-9:
+            z_lo, z_hi = z_lo - 1, z_hi + 1
+        axes = ThreeDAxes(
+            x_range=[lo, hi, (hi - lo) / 4],
+            y_range=[lo, hi, (hi - lo) / 4],
+            z_range=[z_lo, z_hi, (z_hi - z_lo) / 4],
+            x_length=4.6,
+            y_length=4.6,
+            z_length=3.0,
+            axis_config={"color": INK, "include_ticks": False},
+        )
+
+        def point(u, v):
+            z = f(u, v)
+            z = z_lo if not math.isfinite(z) else max(z_lo, min(z_hi, z))
+            return axes.c2p(u, v, z)
+
+        surface = Surface(point, u_range=[lo, hi], v_range=[lo, hi], resolution=(n, n))
+        surface.set_style(stroke_color=INK, stroke_width=0.3)
+        surface.set_fill_by_checkerboard(ACCENTS[0], ACCENTS[3], opacity=0.85)
+        model = VGroup(axes, surface)
+        centre = self._place(spec)
+        model.move_to(centre)
+        self.play(Create(axes), run_time=0.8)
+        self.play(Create(surface), run_time=1.8)
+        self._turn(model, centre)
+        formula = _fit(_text(f"z = {spec['expression']}", font, 28, 40, color=MUTED), height=0.7)
+        formula.to_edge(DOWN, buff=0.4)
+        self.add_fixed_in_frame_mobjects(formula)
+        self.play(FadeIn(formula), run_time=0.5)
+        return 3.1 + self._facts(spec, font, budget - 3.1)

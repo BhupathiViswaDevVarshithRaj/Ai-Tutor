@@ -11,7 +11,9 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
+from app.video.images import FoundImage
 from app.video.render import FFmpegCompositor, ManimRenderer
 from app.video.script import Scene
 from app.video.timing import build_cues, scene_seconds, to_srt
@@ -26,7 +28,17 @@ pytestmark = [
 
 
 def scene(template, heading, narration, **extra) -> Scene:
-    base = dict(items=[], dates=[], expression="", x_min=0, x_max=1, caption="")
+    base = dict(
+        items=[],
+        dates=[],
+        expression="",
+        x_min=0,
+        x_max=1,
+        shape="",
+        atoms=[],
+        image_query="",
+        caption="",
+    )
     return Scene(template=template, heading=heading, narration=narration, **{**base, **extra})
 
 
@@ -55,6 +67,19 @@ SCENES = [
         items=["Helmont", "Priestley"],
         dates=["1640", "1771"],
     ),
+    scene("model3d", "A leaf cell", "Cells are boxes.", shape="cuboid", items=["Cell wall"]),
+    scene("molecule3d", "Water", "Water is bent.", shape="bent", atoms=["O", "H", "H"]),
+    scene(
+        "surface3d",
+        "Light on a leaf",
+        "Brightest in the middle.",
+        expression="exp(-(x^2 + y^2))",
+        x_min=-2,
+        x_max=2,
+    ),
+    scene(
+        "image", "A leaf up close", "This is a leaf.", image_query="leaf", items=["Green", "Flat"]
+    ),
     scene("summary", "पौधे भोजन बनाते हैं", "पौधे सूर्य के प्रकाश से भोजन बनाते हैं।", items=["प्रकाश", "पानी"]),
 ]
 
@@ -73,8 +98,19 @@ def test_every_template_renders_into_one_subtitled_video():
     workdir = Path(tempfile.mkdtemp())
     renderer, compositor = ManimRenderer("l"), FFmpegCompositor("l")
     durations = [scene_seconds(s.narration, None) for s in SCENES]
+    # A picture as the pipeline saves them (RGBA PNG): this also guards the Pillow pin.
+    picture = workdir / "leaf.png"
+    Image.new("RGBA", (900, 600), (60, 160, 60, 255)).save(picture)
+    leaf = FoundImage(picture, "File:Leaf.png", "Image: Test · CC0 · Wikimedia Commons", "")
     clips = [
-        renderer.render(s, seconds, i, workdir, "hi" if i == 5 else "en")
+        renderer.render(
+            s,
+            seconds,
+            i,
+            workdir,
+            "hi" if s.template == "summary" else "en",
+            leaf if s.template == "image" else None,
+        )
         for i, (s, seconds) in enumerate(zip(SCENES, durations, strict=True))
     ]
     srt = workdir / "subs.srt"

@@ -23,6 +23,7 @@ from app.ai.speech.base import SpeechError, TTSProvider
 from app.db.enums import MediaKind, VideoStatus
 from app.db.models import Lesson, MediaAsset, VideoJob
 from app.db.session import session_scope
+from app.video.images import FoundImage, ImageFinder
 from app.video.script import VIDEO_SYSTEM, Scene, VideoScript, validate_script, video_request
 from app.video.storage import LocalMediaStorage
 from app.video.timing import build_cues, scene_seconds, to_srt, to_vtt
@@ -36,7 +37,13 @@ class RenderError(Exception):
 
 class SceneRenderer(Protocol):
     def render(
-        self, scene: Scene, seconds: float, index: int, workdir: Path, language: str
+        self,
+        scene: Scene,
+        seconds: float,
+        index: int,
+        workdir: Path,
+        language: str,
+        image: FoundImage | None = None,
     ) -> Path: ...
 
 
@@ -59,6 +66,8 @@ class VideoDeps:
     renderer: SceneRenderer
     compositor: Compositor
     storage: LocalMediaStorage
+    # Real pictures for `image` scenes; without one, those scenes fall back to text.
+    images: ImageFinder | None = None
     # Called with each stage's progress; tests use it to observe the pipeline.
     on_progress: Callable[[VideoStatus, int, str], None] | None = None
 
@@ -128,14 +137,20 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
             schema=VideoScript,
         )
         script = validate_script(result.value, topic)
-        scenes = script.scenes
+        await _set(job_id, deps, VideoStatus.SCRIPTING, 10, "Finding pictures")
+        scenes, pictures = await _find_pictures(script.scenes, deps.images, workdir)
+        script = VideoScript(title=script.title, scenes=scenes)
+        credits = [
+            {"scene": i, "title": p.title, "credit": p.credit, "source_url": p.source_url}
+            for i, p in sorted(pictures.items())
+        ]
         await _set(
             job_id,
             deps,
             VideoStatus.NARRATING,
             15,
             "Recording the narration",
-            script=script.model_dump(),
+            script={**script.model_dump(), "credits": credits},
         )
 
         # Narration: real speech when a real voice is configured; otherwise silent.
@@ -177,7 +192,9 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
                 f"Drawing scene {i + 1} of {len(scenes)}",
             )
             clips.append(
-                await asyncio.to_thread(deps.renderer.render, scene, duration, i, workdir, language)
+                await asyncio.to_thread(
+                    deps.renderer.render, scene, duration, i, workdir, language, pictures.get(i)
+                )
             )
 
         await _set(job_id, deps, VideoStatus.COMPOSITING, 88, "Putting it together")
@@ -242,6 +259,28 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
         await _fail(job_id, "Something went wrong while making the video. Please try again.")
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+async def _find_pictures(
+    scenes: list[Scene], finder: ImageFinder | None, workdir: Path
+) -> tuple[list[Scene], dict[int, FoundImage]]:
+    """Fetch a picture for each `image` scene. A scene without one becomes text: its facts as
+    bullets, or a plain card when it has fewer than two."""
+    found: dict[int, FoundImage] = {}
+    result = []
+    for i, scene in enumerate(scenes):
+        if scene.template == "image":
+            picture = (
+                await finder.find(scene.image_query, workdir / f"image{i}.png") if finder else None
+            )
+            if picture:
+                found[i] = picture
+            else:
+                logger.info("no picture for %r; showing text instead", scene.image_query)
+                fallback = "bullets" if len(scene.items) >= 2 else "title"
+                scene = scene.model_copy(update={"template": fallback, "image_query": ""})
+        result.append(scene)
+    return result, found
 
 
 async def _fail(job_id: uuid.UUID, message: str) -> None:

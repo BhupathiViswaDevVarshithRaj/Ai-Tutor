@@ -82,6 +82,7 @@ def to_out(job: VideoJob, assets: dict[uuid.UUID, MediaAsset]) -> VideoOut:
         error=job.error,
         narrated=job.narrated,
         scene_count=len(script.get("scenes", [])),
+        image_credits=script.get("credits", []),
         duration_ms=video.duration_ms if video else None,
         video_url=media_url(video.id) if video else None,
         subtitles_url=media_url(subtitles.id) if subtitles else None,

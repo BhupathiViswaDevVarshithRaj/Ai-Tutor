@@ -38,9 +38,14 @@
 - **Phase 13 (assessment and progress):** generated quizzes (multiple choice and short answer) marked by rule or by the AI, results by idea with explanations and next steps, mastery per idea with a revision schedule, quick understanding checks from lessons, and a real My Progress page (scores trend, active days, strong and weak ideas, revision plan).
 - **Phase 14 (testing and hardening):** 12 Playwright end-to-end journeys (sign-up/sign-in, lesson + tutor + progress, voice input, quiz → My Progress, mind map, whiteboard, language words, video queue, privacy between two learners, phone layout and menu) on their own mock backend; security headers, a 4 MB body limit, per-user limits for AI/speech/video, docs off in production; a route-table test that every ID route refuses other users; an N+1 query guard; main bundle trimmed 157 → 117 kB gzip.
 
-## Test results (actually executed, 2026-11-04)
+- **Real pictures in videos (2026-11-05, branch `video-3d`):** an `image` scene shows a real photo from Wikimedia Commons with its facts and credit; live check: "AK-47 rifle: its parts and history" → the public-domain photo of the rifle, narrated 66 s video. Basic solids are no longer passed off as real objects.
+- **Video Studio 3D (2026-11-05, branch `video-3d`):** three 3D scene templates (solids, molecules, surfaces) that turn slowly with labels and facts; Groq chooses them when a topic has a shape, a structure in space or a two-variable function.
+
+## Test results (actually executed, 2026-11-04/05)
 | Suite | Result |
 |---|---|
+| Pictures in videos (2026-11-05) | Backend 329 passed, 1 skipped (picture search with a stand-in transport: photos first, unusable/foreign files skipped, offline → none; pipeline fallback and credits); real render test in the worker with all 10 templates incl. a picture — 1 passed; frontend 202 passed (`--maxWorkers=2`). Live: Commons found real photos for an AK-47, a microscope and a 3D printer (3–6 s per search, 8–9 s per scene render at 480p) |
+| 3D video templates (2026-11-05) | Real render test in the worker image: all 9 templates (incl. cuboid, water, a Gaussian surface and a Hindi summary) joined into one subtitled video — 1 passed. Live through the app with Groq + Gnani: "Shapes of molecules" → 2 `molecule3d` scenes (water bent, methane tetrahedral), 61.5 s 1280×720, narrated; "Cylinder" → a `model3d` cylinder with r/h; "Functions of two variables" → a `surface3d` of sin(x)·cos(y) (after the formula fix). Frames checked by eye. Backend 317 passed, 1 skipped; frontend 202 passed (with `--maxWorkers=2`: at full parallelism page tests time out while other apps keep the CPU at ~50%) |
 | Backend (`pytest`, real Postgres + Redis test DB) | 303 passed, 1 skipped (the real render test, which runs in the worker image) |
 | E2E (`npm run e2e`, Playwright Chromium, desktop + Pixel 7) | 12 passed, two full runs in a row (≈ 1 min each), and again after the bundle change |
 | Isolation (`test_isolation.py`) | all 17 ID routes in the OpenAPI schema answer 404 to another user; creating quizzes, maps, diagrams, videos or conversations on another user's lesson → 404; lists and My Progress empty for the other user |
@@ -93,6 +98,8 @@
 - Video scripts from the mock AI are placeholders; real scripts need `ANTHROPIC_API_KEY`.
 - The video worker is a 2.4 GB Docker image and must be started separately (`docker compose --profile video up -d video-worker`); without it, videos wait in the queue and the page says so.
 - One video renders at a time; a 60 s video at 720p takes roughly 30–60 s on this machine.
+- Pictures depend on what Wikimedia Commons has; a topic with no good free picture gets text instead. Searches are in English.
+- 3D scenes take ~1–1.5 min each to render at 720p (at most two per video). Molecules use ideal VSEPR angles (lone pairs aren't drawn); only single bonds are shown.
 - Videos are stored on the local disk (`media/`); there's no cloud storage or automatic clean-up of old files yet (deleting a video removes its files).
 - Subtitles are in the video's own language only (no translated subtitle tracks yet).
 - SVG exports are large (≈ 3.7 MB) because all web fonts, including the Indic script fonts, are embedded; PNG is ≈ 60 kB.

@@ -18,6 +18,15 @@ class VideoCreate(BaseModel):
     lesson_id: uuid.UUID | None = None
 
 
+class ImageCredit(BaseModel):
+    """A picture shown in the video, with the attribution its licence requires."""
+
+    scene: int
+    title: str
+    credit: str
+    source_url: str
+
+
 class VideoOut(BaseModel):
     id: uuid.UUID
     lesson_id: uuid.UUID | None
@@ -33,6 +42,7 @@ class VideoOut(BaseModel):
     # False: the video is silent with subtitles (no real voice is configured yet).
     narrated: bool
     scene_count: int
+    image_credits: list[ImageCredit]
     duration_ms: int | None
     # Signed, expiring links usable directly in <video> and <track>.
     video_url: str | None

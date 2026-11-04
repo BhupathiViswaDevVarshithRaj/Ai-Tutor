@@ -179,5 +179,20 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] 14.8 Performance: N+1 guard on list pages and My Progress; `e2e/perf.py` timings; `LazyMotion` (main bundle 157 → 117 kB gzip)
 - [x] 14.9 Mock AI notices name GROQ_API_KEY as well as ANTHROPIC_API_KEY
 
+## Extra — 3D in Video Studio ✅ (branch `video-3d`)
+- [x] `model3d`: cube, cuboid, sphere, hemisphere, cylinder, cone, square pyramid, triangular prism, tetrahedron, octahedron, torus — turning, with labelled r/h/l/a measurements
+- [x] `molecule3d`: ball-and-stick by VSEPR geometry (linear … octahedral), CPK colours, readable atom labels
+- [x] `surface3d`: z = f(x, y) with the safe formula grammar extended to x and y
+- [x] Facts appear beside the model; at most two 3D scenes per video; prompt teaches the model when to use them
+- [x] Fixes found on the way: formulas written as `z = …` or with ·/−/², Groq `json_validate_failed` retries, render subprocess importing stale code
+- [x] Tests: script validation, bond angles, formulas; real render in the worker image; live videos through the app
+
+## Extra — Real pictures in Video Studio ✅ (branch `video-3d`)
+- [x] `image` scene: the model writes a search phrase and facts; the worker fetches a real photo from Wikimedia Commons (no key)
+- [x] Safe download (Wikimedia hosts only, size cap, Pillow re-encode), photos before drawings, text fallback, at most 3 per video
+- [x] Credits on screen and under the video (licence requirement); User-Agent per Wikimedia policy
+- [x] Fixed: Manim 0.19 + Pillow 13 hang (worker pinned to Pillow 11); basic solids no longer stand in for real objects
+- [x] Tests: picture search, pipeline fallback/credits, render test with a picture, frontend credits
+
 ## Phase 15 ⏸ — Deployment
 Broken into tasks when the phase starts (needs your choice of host).

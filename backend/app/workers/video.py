@@ -5,13 +5,14 @@ import uuid
 
 from arq.connections import RedisSettings
 
-from app.ai.llm.factory import get_llm
+from app.ai.llm.factory import get_video_llm
 from app.ai.speech.factory import get_tts
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.core.redis import close_redis
 from app.db.session import dispose_engine
 from app.services.video_service import VIDEO_QUEUE
+from app.video.images import WikimediaImages
 from app.video.pipeline import VideoDeps, run_video_job
 from app.video.render import FFmpegCompositor, ManimRenderer
 from app.video.storage import get_storage
@@ -23,11 +24,12 @@ async def startup(ctx: dict) -> None:
     configure_logging()
     settings = get_settings()
     ctx["deps"] = VideoDeps(
-        llm=get_llm(),
+        llm=get_video_llm(),
         tts=get_tts(),
         renderer=ManimRenderer(settings.video_quality),
         compositor=FFmpegCompositor(settings.video_quality),
         storage=get_storage(),
+        images=WikimediaImages(settings),
     )
     logger.info(
         "video worker ready (quality=%s, media=%s)", settings.video_quality, settings.media_root

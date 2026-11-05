@@ -15,7 +15,7 @@ from PIL import Image
 
 from app.video.images import FoundImage
 from app.video.render import FFmpegCompositor, ManimRenderer
-from app.video.script import Scene
+from app.video.script import MapBranch, Scene
 from app.video.timing import build_cues, scene_seconds, to_srt
 
 pytestmark = [
@@ -76,6 +76,35 @@ SCENES = [
         expression="exp(-(x^2 + y^2))",
         x_min=-2,
         x_max=2,
+    ),
+    scene(
+        "mindmap",
+        "How it fits together",
+        "An overview. Light first. Then water. Then air.",
+        caption="Photosynthesis",
+        branches=[
+            MapBranch(label="Light", children=["From the sun", "Absorbed"], say="Light first."),
+            MapBranch(label="Water", children=["From the roots"], say="Then water."),
+            MapBranch(label="Air", children=[], say="Then air."),
+        ],
+    ),
+    scene("cycle", "The carbon cycle", "Carbon loops.", items=["Air", "Leaf", "Soil"]),
+    scene(
+        "compare",
+        "Day and night",
+        "They differ.",
+        branches=[
+            MapBranch(label="Day", children=["Light", "Makes sugar"], say=""),
+            MapBranch(label="Night", children=["Dark", "Uses sugar"], say=""),
+        ],
+    ),
+    scene(
+        "chart",
+        "Leaf sizes",
+        "Some leaves are big.",
+        items=["Fern", "Oak", "Palm"],
+        values=[4.0, 12.5, 300.0],
+        caption="Length in centimetres",
     ),
     scene(
         "image", "A leaf up close", "This is a leaf.", image_query="leaf", items=["Green", "Flat"]

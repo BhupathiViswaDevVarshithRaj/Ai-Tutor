@@ -76,6 +76,7 @@ def to_out(job: VideoJob, assets: dict[uuid.UUID, MediaAsset]) -> VideoOut:
         language=job.language,
         level=job.level,
         target_seconds=job.target_seconds,
+        style=job.style,
         status=job.status,
         progress=job.progress,
         stage_detail=job.stage_detail,
@@ -83,6 +84,8 @@ def to_out(job: VideoJob, assets: dict[uuid.UUID, MediaAsset]) -> VideoOut:
         narrated=job.narrated,
         scene_count=len(script.get("scenes", [])),
         image_credits=script.get("credits", []),
+        fact_sources=script.get("sources", []),
+        fact_checked=bool(script.get("reviewed")),
         duration_ms=video.duration_ms if video else None,
         video_url=media_url(video.id) if video else None,
         subtitles_url=media_url(subtitles.id) if subtitles else None,
@@ -122,6 +125,7 @@ async def create(
         language=data.language,
         level=data.level,
         target_seconds=data.target_seconds,
+        style=data.style,
     )
     session.add(job)
     await session.commit()

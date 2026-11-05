@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -16,6 +16,8 @@ class VideoCreate(BaseModel):
     language: LanguageCode
     target_seconds: int = Field(default=60, ge=30, le=120)
     lesson_id: uuid.UUID | None = None
+    # "mindmap": the video explains the topic as one animated mind map.
+    style: Literal["auto", "mindmap"] = "auto"
 
 
 class ImageCredit(BaseModel):
@@ -27,6 +29,11 @@ class ImageCredit(BaseModel):
     source_url: str
 
 
+class FactSource(BaseModel):
+    title: str
+    url: str
+
+
 class VideoOut(BaseModel):
     id: uuid.UUID
     lesson_id: uuid.UUID | None
@@ -35,6 +42,7 @@ class VideoOut(BaseModel):
     language: LanguageCode
     level: LearningLevel
     target_seconds: int
+    style: str
     status: VideoStatus
     progress: int
     stage_detail: str | None
@@ -43,6 +51,9 @@ class VideoOut(BaseModel):
     narrated: bool
     scene_count: int
     image_credits: list[ImageCredit]
+    # What the script was written from, and whether a review against it was accepted.
+    fact_sources: list[FactSource]
+    fact_checked: bool
     duration_ms: int | None
     # Signed, expiring links usable directly in <video> and <track>.
     video_url: str | None

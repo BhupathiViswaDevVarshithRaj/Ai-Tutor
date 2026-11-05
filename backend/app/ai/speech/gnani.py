@@ -13,6 +13,7 @@ Browser recordings (WebM/Opus, which Gnani doesn't list) are decoded to WAV firs
 recordings are sent in pieces under the 30 s limit.
 """
 
+import asyncio
 import logging
 
 import httpx
@@ -40,6 +41,7 @@ DEFAULT_BASE_URL = "https://api.vachana.ai"
 API_KEY_HEADER = "X-API-Key-ID"
 STT_PATH = "/stt/v3"
 TTS_PATH = "/api/v1/tts/inference"
+CONNECT_ATTEMPTS = 3
 
 # App language code -> Gnani language code (the ten Indian languages both APIs support).
 LANGUAGE_CODES = {
@@ -114,19 +116,30 @@ class _GnaniClient:
 
     async def post(self, path: str, what: str, **kwargs) -> httpx.Response:
         s = self.settings
-        try:
-            async with httpx.AsyncClient(
-                base_url=s.gnani_api_base_url or DEFAULT_BASE_URL,
-                headers={API_KEY_HEADER: s.gnani_api_key},
-                timeout=s.gnani_timeout_seconds,
-                transport=self.transport,
-            ) as client:
-                response = await client.post(path, **kwargs)
-        except httpx.TimeoutException as exc:
-            raise SpeechError(f"{what} took too long. Please try again.") from exc
-        except httpx.HTTPError as exc:
-            logger.error("Gnani %s unreachable: %s", what, exc)
-            raise SpeechError("Couldn't reach the speech service. Please try again.") from exc
+        for attempt in range(CONNECT_ATTEMPTS):
+            try:
+                async with httpx.AsyncClient(
+                    base_url=s.gnani_api_base_url or DEFAULT_BASE_URL,
+                    headers={API_KEY_HEADER: s.gnani_api_key},
+                    timeout=s.gnani_timeout_seconds,
+                    transport=self.transport,
+                ) as client:
+                    response = await client.post(path, **kwargs)
+                break
+            except httpx.TimeoutException as exc:
+                raise SpeechError(f"{what} took too long. Please try again.") from exc
+            except httpx.ConnectError as exc:
+                # Often a passing failure (a dropped link, a network filter's bad certificate):
+                # one must not silence a whole video. Certificates are still always verified.
+                logger.warning("Gnani %s connection failed: %s", what, exc)
+                if attempt == CONNECT_ATTEMPTS - 1:
+                    raise SpeechError(
+                        "Couldn't reach the speech service. Please try again."
+                    ) from exc
+                await asyncio.sleep(attempt + 1)
+            except httpx.HTTPError as exc:
+                logger.error("Gnani %s unreachable: %s", what, exc)
+                raise SpeechError("Couldn't reach the speech service. Please try again.") from exc
         if response.status_code != 200:
             raise _error_for(response, what)
         return response

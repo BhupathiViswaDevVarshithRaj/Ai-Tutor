@@ -6,6 +6,7 @@ contact details (https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundati
 Every image is shown with its author and licence, as the licences require.
 """
 
+import asyncio
 import html
 import io
 import logging
@@ -26,6 +27,7 @@ API_URL = "https://commons.wikimedia.org/w/api.php"
 MEDIA_HOSTS = {"upload.wikimedia.org", "thumb.wikimedia.org"}
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"}
 CANDIDATES = 8
+ATTEMPTS = 3  # connections sometimes drop; a picture is worth a retry
 MIN_WIDTH = 400
 MAX_ASPECT = 3.2  # skip panoramas and long strips
 MAX_BYTES = 8 * 1024 * 1024
@@ -80,21 +82,25 @@ class WikimediaImages:
         self.transport = transport
 
     async def find(self, query: str, dest: Path) -> FoundImage | None:
-        try:
-            async with httpx.AsyncClient(
-                headers={"User-Agent": self.user_agent},
-                timeout=30,
-                transport=self.transport,
-                follow_redirects=False,
-            ) as client:
-                # Photos first (bitmaps); drawings and SVG diagrams only if no photo fits.
-                for search in (f"{query} filetype:bitmap", query):
-                    for page in pick(await self._search(client, search)):
-                        found = await self._download(client, page, dest)
-                        if found:
-                            return found
-        except httpx.HTTPError as exc:
-            logger.warning("Commons search for %r failed: %s", query, exc)
+        for attempt in range(ATTEMPTS):
+            try:
+                async with httpx.AsyncClient(
+                    headers={"User-Agent": self.user_agent},
+                    timeout=30,
+                    transport=self.transport,
+                    follow_redirects=False,
+                ) as client:
+                    # Photos first (bitmaps); drawings and SVG diagrams only if no photo fits.
+                    for search in (f"{query} filetype:bitmap", query):
+                        for page in pick(await self._search(client, search)):
+                            found = await self._download(client, page, dest)
+                            if found:
+                                return found
+                return None
+            except httpx.HTTPError as exc:
+                logger.warning("Commons search for %r failed: %s", query, exc)
+                if attempt < ATTEMPTS - 1:
+                    await asyncio.sleep(attempt + 1)
         return None
 
     async def _search(self, client: httpx.AsyncClient, query: str) -> list[dict]:

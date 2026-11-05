@@ -26,27 +26,34 @@ from manim import (
     Cone,
     Create,
     Cube,
+    CubicBezier,
+    CurvedArrow,
     Cylinder,
     DashedLine,
     Dot,
     FadeIn,
+    FadeOut,
     Group,
     GrowArrow,
+    GrowFromEdge,
     ImageMobject,
     Line,
     Line3D,
     Octahedron,
     Polyhedron,
     Prism,
+    Rectangle,
     RoundedRectangle,
     Scene,
     Sphere,
     Surface,
+    SurroundingRectangle,
     Tetrahedron,
     Text,
     ThreeDAxes,
     ThreeDScene,
     Torus,
+    Transform,
     VGroup,
     VMobject,
     Write,
@@ -131,6 +138,266 @@ class TemplateScene(Scene):
         return 0.8 + step * len(rows)
 
     _summary = _bullets
+
+    def _node(self, text, font, size, wrap, color, fill=0.18, min_width=0.0):
+        """Centred text in a coloured box, one Text per line so every script stays centred."""
+        lines = [
+            Text(line, font=font, font_size=size, color=INK)
+            for line in textwrap.wrap(text, width=wrap) or [" "]
+        ]
+        label = VGroup(*lines).arrange(DOWN, buff=0.08)
+        box = RoundedRectangle(
+            corner_radius=0.16,
+            width=max(label.width + 0.36, min_width),
+            height=label.height + 0.28,
+            stroke_color=color,
+            stroke_width=3,
+            fill_color=color,
+            fill_opacity=fill,
+        )
+        return VGroup(box, label.move_to(box))
+
+    def _mindmap(self, spec, font, total) -> float:
+        """A two-sided mind map that grows branch by branch; the branch being explained is ringed.
+
+        Time is shared out by characters of narration, so each branch appears as it is spoken.
+        """
+        heading = self._heading(spec, font)
+        branches = spec["branches"]
+        root = self._node(spec.get("caption") or spec["heading"], font, 26, 16, INK, min_width=2.2)
+
+        # Build every node first, then stack each side by the real heights, so nothing overlaps
+        # whichever script or line count the labels turn out to have.
+        built = []
+        for i, b in enumerate(branches):
+            color = ACCENTS[i % len(ACCENTS)]
+            node = self._node(b["label"], font, 22, 16, color, fill=0.28, min_width=1.7)
+            leaves = [self._node(c, font, 18, 20, color, fill=0.1) for c in b["children"]]
+            built.append((node, leaves, color))
+        gap, leaf_gap = 0.34, 0.14
+        for side, members in ((1, built[0::2]), (-1, built[1::2])):
+            blocks = []
+            for node, leaves, _ in members:
+                stack = sum(leaf.height for leaf in leaves) + leaf_gap * max(len(leaves) - 1, 0)
+                blocks.append(max(node.height, stack))
+            y = (sum(blocks) + gap * (len(blocks) - 1)) / 2
+            for (node, leaves, _), block in zip(members, blocks, strict=True):
+                # Clear of the centre box however wide it is, with room for the link.
+                reach = root.width / 2 + 0.8 + node.width / 2
+                node.move_to([side * reach, y - block / 2, 0])
+                # Leaves start just past their branch's outer edge, however wide it is.
+                edge = node.get_right()[0] if side > 0 else node.get_left()[0]
+                top = (
+                    y
+                    - (
+                        block
+                        - sum(leaf.height for leaf in leaves)
+                        - leaf_gap * max(len(leaves) - 1, 0)
+                    )
+                    / 2
+                )
+                for leaf in leaves:
+                    x = edge + side * (0.6 + leaf.width / 2)
+                    leaf.move_to([x, top - leaf.height / 2, 0])
+                    top -= leaf.height + leaf_gap
+                y -= block + gap
+        everything = VGroup(root, *(m for node, leaves, _ in built for m in [node, *leaves]))
+        floor = -3.75
+        room = heading.get_bottom()[1] - 0.3 - floor
+        # Fill the space: small maps grow (a little), big ones shrink to fit.
+        everything.scale(min(13.4 / everything.width, room / everything.height, 1.35))
+        everything.move_to([0, floor + room / 2, 0])
+
+        def link(a, b, color, width):
+            side = 1 if b.get_center()[0] > a.get_center()[0] else -1
+            start = a.get_right() if side > 0 else a.get_left()
+            end = b.get_left() if side > 0 else b.get_right()
+            bend = np.array([(end[0] - start[0]) * 0.5, 0, 0])
+            return CubicBezier(
+                start, start + bend, end - bend, end, color=color, stroke_width=width
+            )
+
+        # Seconds per character of the spoken text (the scene lasts as long as its narration).
+        chars = max(len(spec["narration"]), 1)
+        says = [b.get("say", "") for b in branches]
+        spoken = sum(len(s) + 1 for s in says if s)
+        per_char = max(total - 0.8, 1.0) / chars
+        opening = max(0.7, per_char * max(chars - spoken, 0)) if spoken else 0.7
+
+        self.play(FadeIn(root, scale=0.7), run_time=0.6)
+        used = 0.8 + 0.6
+        if opening > 0.6:
+            self.wait(opening - 0.6)
+            used += opening - 0.6
+        even = max(total - used - 0.6, 1.0) / len(branches)
+        ring = None
+        for say, (node, leaves, color) in zip(says, built, strict=True):
+            share = max(per_char * (len(say) + 1), 1.0) if say else even
+            step = min(0.7, share * 0.35)
+            self.play(Create(link(root, node, color, 5)), FadeIn(node, scale=0.8), run_time=step)
+            spent = step
+            for leaf in leaves:
+                grow = min(0.45, share * 0.15)
+                self.play(
+                    Create(link(node, leaf, color, 3)), FadeIn(leaf, scale=0.8), run_time=grow
+                )
+                spent += grow
+            box = SurroundingRectangle(
+                VGroup(node, *leaves), color=color, buff=0.1, corner_radius=0.18
+            )
+            box.set_stroke(width=5)
+            if ring is None:
+                ring = box
+                self.play(Create(ring), run_time=0.3)
+            else:
+                self.play(Transform(ring, box), run_time=0.3)
+            spent += 0.3
+            if share > spent:
+                self.wait(share - spent)
+                spent = share
+            used += spent
+        if ring is not None:
+            self.play(FadeOut(ring), run_time=0.3)
+            used += 0.3
+        return used
+
+    def _cycle(self, spec, font, total) -> float:
+        """Stages around a loop of curved arrows, with a marker that keeps travelling round."""
+        heading = self._heading(spec, font)
+        items = spec["items"]
+        n = len(items)
+        centre = np.array([0, -0.5, 0])
+        rx, ry = 4.7, 2.25
+        boxes = VGroup()
+        for i, item in enumerate(items):
+            angle = math.pi / 2 - 2 * math.pi * i / n
+            node = self._node(
+                item, font, 24, 16, ACCENTS[i % len(ACCENTS)], fill=0.22, min_width=2.2
+            )
+            node.move_to(centre + np.array([rx * math.cos(angle), ry * math.sin(angle), 0]))
+            boxes.add(node)
+        step = min(1.0, max(0.4, total * 0.55 / n))
+        self.play(FadeIn(boxes[0], scale=0.8), run_time=step)
+        arrows = []
+        for i in range(1, n + 1):
+            a, b = boxes[i - 1], boxes[i % n]
+            way = b.get_center() - a.get_center()
+            way = way / np.linalg.norm(way)
+            # Bending clockwise, the arrows read as one loop rather than a polygon.
+            arrow = CurvedArrow(
+                a[0].get_boundary_point(way) + way * 0.08,
+                b[0].get_boundary_point(-way) - way * 0.08,
+                angle=-2 * math.pi / (n * 2.4),
+                color=INK,
+                stroke_width=4,
+            )
+            arrows.append(arrow)
+            parts = [Create(arrow)] + ([FadeIn(b, scale=0.8)] if i < n else [])
+            self.play(*parts, run_time=step)
+        used = 0.8 + step * (n + 1)
+        if spec.get("caption"):
+            caption = _fit(_text(spec["caption"], font, 26, 24, color=MUTED), width=4.6, height=1.4)
+            self.play(FadeIn(caption.move_to(centre)), run_time=0.4)
+            used += 0.4
+        # A marker rides the arrows from stage to stage for the rest of the scene.
+        marker = Dot(arrows[0].get_start(), radius=0.13, color=ACCENTS[1]).set_z_index(5)
+        clock = {"t": 0.0}
+
+        def travel(m, dt):
+            clock["t"] += dt
+            position = clock["t"] / 1.2
+            m.move_to(arrows[int(position) % n].point_from_proportion(position % 1 * 0.9))
+
+        marker.add_updater(travel)
+        self.add(marker)
+        _ = heading
+        return used
+
+    def _compare(self, spec, font, total) -> float:
+        """Two columns of matching rows; each pair appears together, to be read across."""
+        heading = self._heading(spec, font)
+        left, right = spec["branches"]
+        colors = (ACCENTS[0], ACCENTS[1])
+        titles = [
+            self._node(b["label"], font, 30, 22, c, fill=0.3, min_width=5.7)
+            for b, c in zip((left, right), colors, strict=True)
+        ]
+        pairs = []
+        for i in range(max(len(left["children"]), len(right["children"]))):
+            pair = []
+            for b, c in zip((left, right), colors, strict=True):
+                if i < len(b["children"]):
+                    pair.append(
+                        self._node(b["children"][i], font, 25, 30, c, fill=0.08, min_width=5.7)
+                    )
+                else:
+                    pair.append(None)
+            pairs.append(pair)
+        heights = [max(p.height for p in pair if p) for pair in pairs]
+        gap = 0.2
+        block = max(t.height for t in titles) + 0.32 + sum(heights) + gap * (len(heights) - 1)
+        floor = -3.7
+        room = heading.get_bottom()[1] - 0.3 - floor
+        board = VGroup(*titles, *(p for pair in pairs for p in pair if p))
+        # Lay out at full size, then scale the whole board together so rows stay lined up.
+        y = block / 2
+        for side, title in zip((-1, 1), titles, strict=True):
+            title.move_to([side * 3.2, y - title.height / 2, 0])
+        y -= max(t.height for t in titles) + 0.32
+        for pair, height in zip(pairs, heights, strict=True):
+            for side, item in zip((-1, 1), pair, strict=True):
+                if item:
+                    item.move_to([side * 3.2, y - height / 2, 0])
+            y -= height + gap
+        board.scale(min(13.2 / board.width, room / board.height, 1.15))
+        board.move_to([0, floor + room / 2, 0])
+        self.play(
+            FadeIn(titles[0], shift=RIGHT * 0.3), FadeIn(titles[1], shift=LEFT * 0.3), run_time=0.7
+        )
+        step = min(1.0, max(0.35, total * 0.6 / len(pairs)))
+        for pair in pairs:
+            self.play(*(FadeIn(p, shift=UP * 0.15) for p in pair if p), run_time=step)
+        return 0.8 + 0.7 + step * len(pairs)
+
+    def _chart(self, spec, font, total) -> float:
+        """A bar chart: bars grow from the baseline, the largest in the accent colour."""
+        heading = self._heading(spec, font)
+        labels, values = spec["items"], spec["values"]
+        top = max(values)
+        base_y = -2.5 if spec.get("caption") else -2.9
+        height = base_y * -1 + heading.get_bottom()[1] - 0.95
+        slot = min(11.6 / len(values), 2.8)
+        left = -slot * (len(values) - 1) / 2
+        baseline = Line(
+            [left - slot * 0.6, base_y, 0],
+            [-left + slot * 0.6, base_y, 0],
+            color=INK,
+            stroke_width=3,
+        )
+        self.play(Create(baseline), run_time=0.4)
+        step = min(0.9, max(0.35, total * 0.5 / len(values)))
+        for i, (label, value) in enumerate(zip(labels, values, strict=True)):
+            x = left + i * slot
+            bar = Rectangle(
+                width=slot * 0.62,
+                height=max(height * value / top, 0.02),
+                stroke_width=0,
+                fill_color=ACCENTS[1] if value == top else ACCENTS[0],
+                fill_opacity=1,
+            )
+            bar.move_to([x, base_y + bar.height / 2, 0])
+            name = _fit(_text(label, font, 20, 13), width=slot * 0.95, height=0.75)
+            name.next_to(bar, DOWN, buff=0.14)
+            amount = _fit(_text(f"{value:,g}", font, 22, 12, weight="BOLD"), width=slot * 0.95)
+            amount.next_to(bar, UP, buff=0.1)
+            self.play(GrowFromEdge(bar, DOWN), FadeIn(name), FadeIn(amount), run_time=step)
+        used = 0.8 + 0.4 + step * len(values)
+        if spec.get("caption"):
+            caption = _fit(_text(spec["caption"], font, 22, 60, color=MUTED), height=0.5)
+            caption.to_edge(DOWN, buff=0.15)
+            self.play(FadeIn(caption), run_time=0.4)
+            used += 0.4
+        return used
 
     def _image(self, spec, font, total) -> float:
         """A real picture (downloaded by the pipeline) with its facts and credit line."""

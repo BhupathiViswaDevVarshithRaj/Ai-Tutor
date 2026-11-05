@@ -1,0 +1,50 @@
+[
+  {
+    "topic": "Photosynthesis",
+    "article": "Photosynthesis",
+    "facts": ["chlorophyll", "carbon dioxide", "oxygen", "sunlight|light energy"],
+    "any_template": ["flow", "cycle", "image", "mindmap"]
+  },
+  {
+    "topic": "The water cycle",
+    "article": "Water cycle",
+    "facts": ["evaporat", "condens", "precipitation", "transpiration|runoff|infiltration"],
+    "any_template": ["cycle"]
+  },
+  {
+    "topic": "Parts of the human heart",
+    "article": "Heart",
+    "facts": ["atri(a|um)", "ventricle", "four|4", "valve"],
+    "any_template": ["image", "mindmap"]
+  },
+  {
+    "topic": "Mind map of the Solar System",
+    "article": "Solar System",
+    "facts": ["\\bsun\\b", "eight|8", "jupiter", "asteroid|kuiper"],
+    "any_template": ["mindmap"]
+  },
+  {
+    "topic": "Sizes of the planets compared",
+    "article": "Planet",
+    "facts": ["jupiter", "mercury", "earth"],
+    "any_template": ["chart", "compare"]
+  },
+  {
+    "topic": "History of the printing press",
+    "article": "Printing press",
+    "facts": ["gutenberg", "14[345]\\d|15th|fifteenth", "movable"],
+    "any_template": ["timeline", "image"]
+  },
+  {
+    "topic": "Capacitors versus batteries",
+    "article": "Capacitor",
+    "facts": ["charge", "energy", "electr"],
+    "any_template": ["compare"]
+  },
+  {
+    "topic": "Why the water molecule is bent",
+    "article": "Properties of water",
+    "facts": ["104\\.5", "lone pair", "oxygen", "hydrogen"],
+    "any_template": ["molecule3d"]
+  }
+]

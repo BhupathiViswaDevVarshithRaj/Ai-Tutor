@@ -22,6 +22,9 @@ function job(overrides: Partial<VideoJob> = {}): VideoJob {
     narrated: false,
     scene_count: 0,
     image_credits: [],
+    fact_sources: [],
+    fact_checked: false,
+    style: 'auto',
     duration_ms: null,
     video_url: null,
     subtitles_url: null,
@@ -45,6 +48,8 @@ const DONE = job({
       source_url: 'https://commons.wikimedia.org/wiki/File:Leaf_1_web.jpg',
     },
   ],
+  fact_sources: [{ title: 'Photosynthesis', url: 'https://en.wikipedia.org/wiki/Photosynthesis' }],
+  fact_checked: true,
   duration_ms: 65_000,
   video_url: '/api/v1/media/a1?token=1.sig',
   subtitles_url: '/api/v1/media/a2?token=1.sig',
@@ -68,8 +73,15 @@ describe('Video Studio', () => {
     expect(await screen.findByText('No videos yet')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Video topic'), 'Photosynthesis')
     await user.selectOptions(screen.getByLabelText('Length'), '90')
+    await user.selectOptions(screen.getByLabelText('Explain it as'), 'mindmap')
     await user.click(screen.getByRole('button', { name: 'Generate video' }))
-    expect(api.find('POST /videos')[0].body).toEqual({ topic: 'Photosynthesis', level: 'beginner', language: 'en', target_seconds: 90 })
+    expect(api.find('POST /videos')[0].body).toEqual({
+      topic: 'Photosynthesis',
+      level: 'beginner',
+      language: 'en',
+      target_seconds: 90,
+      style: 'mindmap',
+    })
 
     const bar = await screen.findByRole('progressbar', { name: 'Progress for How plants make food' })
     expect(bar).toHaveAttribute('aria-valuenow', '40')
@@ -82,6 +94,12 @@ describe('Video Studio', () => {
     expect(screen.getByText(/Silent with subtitles/)).toBeInTheDocument()
     expect(screen.getByText(/1:05 · 4 scenes/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Download/ })).toHaveAttribute('href', DONE.video_url)
+    // Says what the script was based on, without claiming it can't be wrong.
+    expect(screen.getByText(/Written from and checked against/)).toHaveTextContent(/AI can still make mistakes/)
+    expect(screen.getByRole('link', { name: 'Photosynthesis' })).toHaveAttribute(
+      'href',
+      'https://en.wikipedia.org/wiki/Photosynthesis',
+    )
     // Pictures from Wikimedia Commons are credited, as their licences require.
     expect(screen.getByText('Picture credits (1)')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Leaf 1 web.jpg' })).toHaveAttribute(

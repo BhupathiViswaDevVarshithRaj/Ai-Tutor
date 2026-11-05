@@ -116,6 +116,20 @@ export function VideoPlayer({ job }: { job: VideoJob }) {
           <Download className="size-4" aria-hidden /> Download
         </a>
       </div>
+      {job.fact_sources.length > 0 && (
+        <p className="text-sm text-muted">
+          {job.fact_checked ? 'Written from and checked against' : 'Written from'}{' '}
+          {job.fact_sources.map((s, i) => (
+            <span key={s.url}>
+              {i > 0 && ', '}
+              <a href={s.url} target="_blank" rel="noreferrer noopener" className="underline">
+                {s.title}
+              </a>
+            </span>
+          ))}{' '}
+          on Wikipedia. AI can still make mistakes.
+        </p>
+      )}
       {job.image_credits.length > 0 && (
         <details className="text-sm">
           <summary className="cursor-pointer font-semibold">Picture credits ({job.image_credits.length})</summary>

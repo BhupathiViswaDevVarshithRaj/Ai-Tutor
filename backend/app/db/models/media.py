@@ -52,6 +52,8 @@ class VideoJob(CreatedAtMixin, Base):
     language: Mapped[str] = mapped_column(String(10))
     level: Mapped[LearningLevel] = mapped_column(pg_enum(LearningLevel, "learning_level"))
     target_seconds: Mapped[int] = mapped_column(SmallInteger)
+    # How to explain the topic: "auto" (the best mix of visuals) or "mindmap".
+    style: Mapped[str] = mapped_column(String(20), default="auto", server_default="auto")
     status: Mapped[VideoStatus] = mapped_column(
         pg_enum(VideoStatus, "video_status"),
         default=VideoStatus.QUEUED,

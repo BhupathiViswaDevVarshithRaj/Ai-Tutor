@@ -17,14 +17,16 @@ from typing import Protocol
 
 from sqlalchemy import update
 
-from app.ai.llm.base import ChatMessage, LLMError, LLMProvider
+from app.ai.llm.base import LLMError, LLMProvider
 from app.ai.prompts import language_name
 from app.ai.speech.base import SpeechError, TTSProvider
 from app.db.enums import MediaKind, VideoStatus
 from app.db.models import Lesson, MediaAsset, VideoJob
 from app.db.session import session_scope
+from app.video.authoring import write_script
 from app.video.images import FoundImage, ImageFinder
-from app.video.script import VIDEO_SYSTEM, Scene, VideoScript, validate_script, video_request
+from app.video.script import Scene, VideoScript
+from app.video.sources import FactFinder
 from app.video.storage import LocalMediaStorage
 from app.video.timing import build_cues, scene_seconds, to_srt, to_vtt
 
@@ -68,6 +70,8 @@ class VideoDeps:
     storage: LocalMediaStorage
     # Real pictures for `image` scenes; without one, those scenes fall back to text.
     images: ImageFinder | None = None
+    # Reference text the script is written from and checked against; optional.
+    facts: FactFinder | None = None
     # Called with each stage's progress; tests use it to observe the pipeline.
     on_progress: Callable[[VideoStatus, int, str], None] | None = None
 
@@ -108,6 +112,7 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
             return  # already handled, cancelled or deleted
         lesson = await session.get(Lesson, job.lesson_id) if job.lesson_id else None
         topic, level, language, seconds = job.topic, job.level, job.language, job.target_seconds
+        style = job.style
         user_id, plan = job.user_id, lesson.plan if lesson else None
 
     workdir = Path(tempfile.mkdtemp(prefix=f"video-{job_id}-"))
@@ -120,23 +125,23 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
             "Writing the script",
             started_at=datetime.now(UTC),
         )
-        result = await deps.llm.parse(
-            system=VIDEO_SYSTEM,
-            messages=[
-                ChatMessage(
-                    "user",
-                    video_request(
-                        topic=topic,
-                        level=level,
-                        language_name=language_name(language),
-                        seconds=seconds,
-                        plan=plan,
-                    ),
-                )
-            ],
-            schema=VideoScript,
+        stage_progress = {"Reading sources": 6, "Writing the script": 7, "Checking the facts": 9}
+
+        async def on_stage(detail: str) -> None:
+            await _set(job_id, deps, VideoStatus.SCRIPTING, stage_progress[detail], detail)
+
+        written = await write_script(
+            deps.llm,
+            deps.facts,
+            topic=topic,
+            level=level,
+            language_name=language_name(language),
+            seconds=seconds,
+            plan=plan,
+            style=style,
+            on_stage=on_stage,
         )
-        script = validate_script(result.value, topic)
+        script = written.script
         await _set(job_id, deps, VideoStatus.SCRIPTING, 10, "Finding pictures")
         scenes, pictures = await _find_pictures(script.scenes, deps.images, workdir)
         script = VideoScript(title=script.title, scenes=scenes)
@@ -150,7 +155,12 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
             VideoStatus.NARRATING,
             15,
             "Recording the narration",
-            script={**script.model_dump(), "credits": credits},
+            script={
+                **script.model_dump(),
+                "credits": credits,
+                "sources": [{"title": s.title, "url": s.url} for s in written.sources],
+                "reviewed": written.reviewed,
+            },
         )
 
         # Narration: real speech when a real voice is configured; otherwise silent.

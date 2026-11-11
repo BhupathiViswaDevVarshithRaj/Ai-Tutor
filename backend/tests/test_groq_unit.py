@@ -155,6 +155,29 @@ async def test_parse_gives_up_after_three_bad_replies_and_on_truncation():
         )
 
 
+def rate_limited(message: str) -> groq.RateLimitError:
+    request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    return groq.RateLimitError(
+        message, response=httpx.Response(429, request=request), body={"error": {"message": message}}
+    )
+
+
+@pytest.mark.parametrize(
+    ("limit", "says", "retryable"),
+    [
+        ("Rate limit reached on tokens per minute (TPM)", "busy", True),
+        ("Rate limit reached on tokens per day (TPD)", "used up", False),
+    ],
+)
+async def test_the_daily_limit_is_explained_differently(limit, says, retryable):
+    fake = FakeCompletions(error=rate_limited(limit))
+    with pytest.raises(LLMError, match=says) as info:
+        await provider_with(fake).parse(
+            system="S", messages=[ChatMessage("user", "x")], schema=LessonPlan
+        )
+    assert info.value.retryable is retryable
+
+
 def _objects(node):
     if isinstance(node, dict):
         if "properties" in node:

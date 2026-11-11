@@ -15,6 +15,7 @@ from app.services.video_service import VIDEO_QUEUE
 from app.video.images import WikimediaImages
 from app.video.pipeline import VideoDeps, run_video_job
 from app.video.render import FFmpegCompositor, ManimRenderer
+from app.video.sources import WikipediaFacts
 from app.video.storage import get_storage
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ async def startup(ctx: dict) -> None:
         compositor=FFmpegCompositor(settings.video_quality),
         storage=get_storage(),
         images=WikimediaImages(settings),
+        facts=WikipediaFacts(settings),
     )
     logger.info(
         "video worker ready (quality=%s, media=%s)", settings.video_quality, settings.media_root

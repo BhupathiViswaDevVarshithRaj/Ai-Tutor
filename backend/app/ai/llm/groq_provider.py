@@ -95,6 +95,13 @@ def _error_code(exc: groq.APIStatusError) -> str | None:
 
 def _map_error(exc: Exception) -> LLMError:
     if isinstance(exc, groq.RateLimitError):
+        # The per-minute limit clears in seconds; the free tier's daily one can take hours.
+        if "per day" in str(exc):
+            logger.warning("Groq daily limit reached: %s", exc)
+            return LLMError(
+                "Today's AI allowance is used up. It refills gradually, so please try again later.",
+                retryable=False,
+            )
         return LLMError("The tutor is busy right now. Please try again in a moment.")
     if isinstance(exc, groq.AuthenticationError | groq.PermissionDeniedError):
         logger.error("Groq credentials rejected: %s", exc)

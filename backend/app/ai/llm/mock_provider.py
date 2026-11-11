@@ -31,7 +31,7 @@ from app.ai.llm.base import (
 from app.ai.mindmap import Branch, BranchNode, MapLink, MapNode, MindMapGraph
 from app.ai.quiz import AnswerGrade, AnswerGrades, QuestionDraft, QuizDraft
 from app.ai.schemas import LessonPlan, LessonSummary, PlanModule, PlanSection
-from app.video.script import Scene, VideoScript
+from app.video.script import ArticleTitles, MapBranch, Scene, VideoScript
 
 MOCK_MODEL = "mock-tutor"
 MOCK_NOTICE = "*(Mock AI: add a GROQ_API_KEY or ANTHROPIC_API_KEY to get real tutor replies.)*"
@@ -139,6 +139,8 @@ class MockLLMProvider:
             )
         elif schema is VideoScript:
             value = _mock_video(topic)
+        elif schema is ArticleTitles:
+            value = ArticleTitles(titles=[topic])
         elif schema is QuizDraft:
             value = _mock_quiz(
                 topic, int(_field(prompt, "Questions", "5")), _field(prompt, "Types", "mixed")
@@ -401,9 +403,9 @@ def _mock_diagram(topic: str, requested: str) -> DiagramSpec:
 
 
 def _mock_video(topic: str) -> VideoScript:
-    """A short, clearly labelled script using five of the templates, one of them 3D."""
+    """A short, clearly labelled script using six of the templates, one 3D, one a mind map."""
 
-    def scene(template, heading, narration, items=(), caption="", shape=""):
+    def scene(template, heading, narration, items=(), caption="", shape="", branches=()):
         return Scene(
             template=template,
             heading=heading,
@@ -415,6 +417,7 @@ def _mock_video(topic: str) -> VideoScript:
             shape=shape,
             atoms=[],
             image_query="",
+            branches=list(branches),
             caption=caption,
             narration=narration,
         )
@@ -446,6 +449,18 @@ def _mock_video(topic: str) -> VideoScript:
                 "A real video would turn a model like this to show its shape from every side.",
                 items=["[mock] Turns slowly", "[mock] Labelled"],
                 shape="cube",
+            ),
+            scene(
+                "mindmap",
+                "[mock] The big picture",
+                "A real video would explain how the ideas connect.",
+                caption="[mock] Topic",
+                branches=[
+                    MapBranch(
+                        label=f"[mock] Idea {n}", children=["[mock] Detail"], say=f"Idea {n}."
+                    )
+                    for n in (1, 2, 3)
+                ],
             ),
             scene(
                 "summary",

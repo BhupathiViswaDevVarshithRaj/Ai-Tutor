@@ -113,7 +113,32 @@ async def test_skips_unusable_results_and_foreign_hosts(tmp_path: Path):
     assert not any(r.url.host == "evil.example" for r in fake.requests)
 
 
-async def test_nothing_found_or_network_errors_give_none(tmp_path: Path):
+async def test_a_failed_connection_is_tried_again(tmp_path: Path, monkeypatch):
+    async def no_wait(_):
+        return None
+
+    monkeypatch.setattr("app.video.images.asyncio.sleep", no_wait)
+    url = "https://upload.wikimedia.org/thumb/1.jpg"
+    fake = FakeCommons({"leaf filetype:bitmap": [page(1, "File:Leaf.jpg")]}, {url: png()})
+    calls = {"n": 0}
+
+    def flaky(request):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise httpx.ConnectError("certificate verify failed")
+        return fake(request)
+
+    found = await WikimediaImages(Settings(), httpx.MockTransport(flaky)).find(
+        "leaf", tmp_path / "p.png"
+    )
+    assert found and found.title == "File:Leaf.jpg"
+
+
+async def test_nothing_found_or_network_errors_give_none(tmp_path: Path, monkeypatch):
+    async def no_wait(_):
+        return None
+
+    monkeypatch.setattr("app.video.images.asyncio.sleep", no_wait)
     assert await finder(FakeCommons({}, {})).find("zzz", tmp_path / "p.png") is None
 
     def down(request):

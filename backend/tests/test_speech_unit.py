@@ -222,6 +222,35 @@ async def test_gnani_tts_voice_must_match_the_language():
         await tts.synthesize("Hallo", language="de")
 
 
+class FlakyGnani(FakeGnani):
+    """Fails to connect a set number of times first, like a network filter's bad certificate."""
+
+    def __init__(self, failures: int) -> None:
+        super().__init__()
+        self.failures = failures
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        if self.failures:
+            self.failures -= 1
+            raise httpx.ConnectError("certificate verify failed")
+        return super().__call__(request)
+
+
+async def test_gnani_tries_again_when_a_connection_fails(monkeypatch):
+    waits = []
+
+    async def no_wait(seconds):
+        waits.append(seconds)
+
+    monkeypatch.setattr("app.ai.speech.gnani.asyncio.sleep", no_wait)
+    _, tts = FlakyGnani(failures=2).providers()
+    assert (await tts.synthesize("hello", language="en")).duration_ms == 1500
+    assert waits == [1, 2]
+    _, tts = FlakyGnani(failures=3).providers()
+    with pytest.raises(SpeechError, match="Couldn't reach"):
+        await tts.synthesize("hello", language="en")
+
+
 @pytest.mark.parametrize(
     ("status", "message", "retryable"),
     [

@@ -194,5 +194,15 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [x] Fixed: Manim 0.19 + Pillow 13 hang (worker pinned to Pillow 11); basic solids no longer stand in for real objects
 - [x] Tests: picture search, pipeline fallback/credits, render test with a picture, frontend credits
 
+## Extra — Video accuracy and visuals (branch `video-visuals`)
+- [x] Scripts written from Wikipedia reference text; a review pass checks the draft, told by code which numbers no source has; bad reviews rejected
+- [x] Fact-check status and source links under each video
+- [x] New scenes: mind map (branches appear as they are explained), cycle, comparison, bar chart
+- [x] "Explain it as: Mind map" option (migration 0010)
+- [x] `evals/run_video_eval.py`: before/after scoring, `--rescore` for free
+- [x] Retries for dropped connections; clear message for Groq's daily limit
+- [ ] Confirm a live mind-map video and re-run all 8 topics once the daily allowance refills
+- [ ] "Sizes" topics should get a bar chart (the model still avoids one)
+
 ## Phase 15 ⏸ — Deployment
 Broken into tasks when the phase starts (needs your choice of host).

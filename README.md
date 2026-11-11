@@ -134,6 +134,8 @@ Interactive docs: http://localhost:8000/docs
 
 **Videos:** made by the `video-worker` container (arq queue on Redis, Manim + FFmpeg). Scenes are 2D (title, bullets, flow, graph, timeline, summary) or 3D: turning solids with labelled measurements, ball-and-stick molecules (VSEPR shapes) and z = f(x, y) surfaces. Real things (machines, tools, organs, places, historical objects) are shown with real pictures from Wikimedia Commons, credited on screen and under the video (`MEDIA_CONTACT` sets the contact sent to Wikimedia). Without it, videos wait in the queue and Video Studio shows how to start it. Files go to `MEDIA_ROOT` (default `media/` in the repo). With Gnani, videos in Indian languages and English are narrated; with the mock voice (or a course language) they are silent with subtitles.
 
+**Video quality check:** `cd backend && .venv/Scripts/python -m evals.run_video_eval --mode full --yes` scores scripts for 8 topics on accuracy and visuals (real API calls: roughly 90,000 tokens, close to half of Groq's free daily 200,000). `--mode draft` measures the model alone; `--rescore FILE` re-marks a saved run for free.
+
 **Language evaluation:** `cd backend && .venv/Scripts/python -m evals.run_language_eval` checks that tutor and role-play replies come back in the right language. With the mock it only exercises the pipeline; add `--yes` to run it against the real model (paid API calls).
 
 **Password reset in development:** without SMTP settings, the reset email (with its link) is printed in the backend log.

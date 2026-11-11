@@ -334,6 +334,7 @@ export type VideoJob = {
   language: LanguageCode
   level: Level
   target_seconds: number
+  style: VideoStyle
   status: VideoStatus
   progress: number
   stage_detail: string | null
@@ -343,6 +344,10 @@ export type VideoJob = {
   scene_count: number
   /** Pictures from Wikimedia Commons shown in the video, with their required attribution. */
   image_credits: { scene: number; title: string; credit: string; source_url: string }[]
+  /** Articles the script was written from. */
+  fact_sources: { title: string; url: string }[]
+  /** True when a review of the script against those articles was accepted. */
+  fact_checked: boolean
   duration_ms: number | null
   video_url: string | null
   subtitles_url: string | null
@@ -350,6 +355,8 @@ export type VideoJob = {
   started_at: string | null
   finished_at: string | null
 }
+
+export type VideoStyle = 'auto' | 'mindmap'
 
 export type QuestionTypes = 'mixed' | 'mcq' | 'short_answer'
 export type QuestionType = 'mcq' | 'short_answer'

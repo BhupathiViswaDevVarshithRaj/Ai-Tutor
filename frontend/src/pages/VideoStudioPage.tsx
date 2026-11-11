@@ -12,6 +12,7 @@ import { cn } from '../components/ui/cn'
 import { Alert, EmptyState, Skeleton } from '../components/ui/feedback'
 import { Field, Select } from '../components/ui/form'
 import { VideoJobCard, VideoPlayer } from '../features/video/VideoParts'
+import type { VideoStyle } from '../lib/api/types'
 import { cancelVideo, createVideo, deleteVideo, getVideoWorker, isActive, listVideos } from '../lib/api/videos'
 import { describeError } from '../lib/errors'
 
@@ -19,11 +20,11 @@ const DURATIONS = [30, 45, 60, 90, 120]
 const POLL_MS = 2000
 
 const PIPELINE = [
-  { label: 'Script', detail: 'Scenes and narration at your level', icon: FileText, tone: 'bg-sun' },
+  { label: 'Script', detail: 'Written from Wikipedia at your level, then checked', icon: FileText, tone: 'bg-sun' },
   { label: 'Narration', detail: 'Spoken by the configured voice', icon: Mic, tone: 'bg-tangerine' },
   {
     label: 'Animated scenes',
-    detail: 'Diagrams, graphs and turning 3D models: solids, molecules, surfaces',
+    detail: 'Mind maps, cycles, comparisons, charts, photos and turning 3D models',
     icon: Clapperboard,
     tone: 'bg-sky',
   },
@@ -35,6 +36,7 @@ export default function VideoStudioPage() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [seconds, setSeconds] = useState(60)
+  const [style, setStyle] = useState<VideoStyle>('auto')
 
   const videos = useQuery({
     queryKey: ['videos'],
@@ -87,7 +89,7 @@ export default function VideoStudioPage() {
               submitLabel="Generate video"
               topicLabel="Video topic"
               placeholder="e.g. How photosynthesis works"
-              onSubmit={(values) => create.mutate({ ...values, target_seconds: seconds })}
+              onSubmit={(values) => create.mutate({ ...values, target_seconds: seconds, style })}
               pending={create.isPending}
               pendingText="Queuing your video…"
               error={create.isError ? describeError(create.error) : undefined}
@@ -100,6 +102,14 @@ export default function VideoStudioPage() {
                         About {d} seconds
                       </option>
                     ))}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Explain it as" hint="A mind map grows branch by branch as the narrator explains each one.">
+                {(c) => (
+                  <Select {...c} value={style} onChange={(e) => setStyle(e.target.value as VideoStyle)}>
+                    <option value="auto">Best mix of visuals</option>
+                    <option value="mindmap">Mind map</option>
                   </Select>
                 )}
               </Field>

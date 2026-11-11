@@ -1,6 +1,6 @@
 import type { LanguageCode, Level } from '../learning'
 import { apiFetch } from './client'
-import type { VideoJob, VideoStatus } from './types'
+import type { VideoJob, VideoStatus, VideoStyle } from './types'
 
 export const ACTIVE_STATUSES: VideoStatus[] = ['queued', 'scripting', 'narrating', 'rendering', 'compositing']
 
@@ -18,6 +18,7 @@ export function createVideo(data: {
   language: LanguageCode
   target_seconds: number
   lesson_id?: string
+  style?: VideoStyle
 }): Promise<VideoJob> {
   return apiFetch<VideoJob>('/videos', { method: 'POST', json: data })
 }

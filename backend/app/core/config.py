@@ -116,6 +116,12 @@ class Settings(BaseSettings):
     def cookie_secure(self) -> bool:
         return self.app_env == "production"
 
+    @field_validator("media_contact", mode="after")
+    @classmethod
+    def _default_contact(cls, value: str) -> str:
+        # A blank MEDIA_CONTACT= line would send no contact, and Wikimedia refuses that (403).
+        return value.strip() or "https://github.com/BhupathiViswaDevVarshithRaj/Ai-Tutor"
+
     @field_validator("media_root", mode="after")
     @classmethod
     def _anchor_media_root(cls, value: Path) -> Path:

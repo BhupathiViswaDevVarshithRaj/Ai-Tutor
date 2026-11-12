@@ -204,5 +204,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done (verified)
 - [ ] Confirm a live mind-map video and re-run all 8 topics once the daily allowance refills
 - [ ] "Sizes" topics should get a bar chart (the model still avoids one)
 
-## Phase 15 ⏸ — Deployment
-Broken into tasks when the phase starts (needs your choice of host).
+## Phase 15 ⏸ — Deployment (branch `phase-15-deploy`)
+- [x] 15.1 Host chosen: Oracle Cloud Always Free (ARM64) + DuckDNS; free domains and tunnels compared
+- [x] 15.2 `docker-compose.prod.yml`: Caddy, API, video worker, Postgres, Redis, backups; only 80/443 published; log rotation
+- [x] 15.3 Images: `api.Dockerfile` (non-root, migrations on start, proxy headers), `web.Dockerfile` (built app + Caddy), worker runs as the API's user
+- [x] 15.4 Caddyfile: HTTPS, CSP without inline scripts, microphone for the site only, HSTS, streaming and WebSocket proxying, SPA routing, asset caching
+- [x] 15.5 `.dockerignore` (no secrets in builds); `setup-env.sh` generates secrets on the server
+- [x] 15.6 Backups every 24 h (14 kept), `restore.sh`; optional DuckDNS updater
+- [x] 15.7 Tested on this PC end to end over HTTPS; ARM64 builds
+- [x] 15.8 DEPLOYMENT.md (Oracle, firewalls, DuckDNS, deploy key, updates, backups, monitoring, troubleshooting)
+- [ ] 15.9 Deploy to the real server (needs your Oracle account and DuckDNS name)

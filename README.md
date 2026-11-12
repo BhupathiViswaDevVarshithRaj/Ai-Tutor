@@ -72,6 +72,11 @@ npm run dev                      # http://localhost:5173 (proxies /api to :8000)
 docker compose --profile video up -d --build video-worker   # first build ≈ 2.4 GB
 ```
 
+## Deploying
+
+To put the app online for free (Oracle Cloud Always Free + DuckDNS, HTTPS by Caddy), follow
+[DEPLOYMENT.md](DEPLOYMENT.md). Production runs from `docker-compose.prod.yml`.
+
 ## Tests
 
 ```bash

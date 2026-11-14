@@ -38,6 +38,7 @@
 - **Phase 13 (assessment and progress):** generated quizzes (multiple choice and short answer) marked by rule or by the AI, results by idea with explanations and next steps, mastery per idea with a revision schedule, quick understanding checks from lessons, and a real My Progress page (scores trend, active days, strong and weak ideas, revision plan).
 - **Phase 14 (testing and hardening):** 12 Playwright end-to-end journeys (sign-up/sign-in, lesson + tutor + progress, voice input, quiz → My Progress, mind map, whiteboard, language words, video queue, privacy between two learners, phone layout and menu) on their own mock backend; security headers, a 4 MB body limit, per-user limits for AI/speech/video, docs off in production; a route-table test that every ID route refuses other users; an N+1 query guard; main bundle trimmed 157 → 117 kB gzip.
 
+- **Phase 15 (deployment), prepared and tested locally (2026-11-11, branch `phase-15-deploy`):** production Docker setup with Caddy (HTTPS, security headers, streaming and WebSocket proxying), images for amd64 and ARM64 (Oracle Ampere), secrets generated on the server, daily backups with a tested restore, a step-by-step DEPLOYMENT.md for Oracle Cloud Always Free + DuckDNS. Not yet deployed: waiting for your Oracle server and DuckDNS name.
 - **Video accuracy and visuals (2026-11-05, branch `video-visuals`):** scripts are written from Wikipedia text and reviewed against it, with fact-check status and sources shown under each video; new animated mind map (branches appear as they are explained), cycle, comparison and bar chart scenes; an "Explain it as: Mind map" option; a repeatable quality eval.
 - **Real pictures in videos (2026-11-05, branch `video-3d`):** an `image` scene shows a real photo from Wikimedia Commons with its facts and credit; live check: "AK-47 rifle: its parts and history" → the public-domain photo of the rifle, narrated 66 s video. Basic solids are no longer passed off as real objects.
 - **Video Studio 3D (2026-11-05, branch `video-3d`):** three 3D scene templates (solids, molecules, surfaces) that turn slowly with labels and facts; Groq chooses them when a topic has a shape, a structure in space or a two-variable function.
@@ -45,6 +46,8 @@
 ## Test results (actually executed, 2026-11-04/05)
 | Suite | Result |
 |---|---|
+| Production stack on this PC (2026-11-11, `https://localhost`, mock AI) | All 6 services up, API healthy; HTTP → HTTPS redirect; CSP, HSTS, Permissions-Policy present; real Chromium: sign-up with secure cookie, reload keeps the session, Google Fonts load under the CSP, tutor reply streams through Caddy, microphone recording uploads, quiz, a video rendered by the worker and playable; no CSP violations or 5xx; dark theme still applied before paint. Voice WebSocket over `wss://` through Caddy: handshake, streamed reply and audio. 12 sign-ins with a different fake X-Forwarded-For each: 11th and 12th blocked (429). Backup → delete all users → `restore.sh` → users back |
+| ARM64 images (2026-11-11, built under emulation) | web: built. api: built, runs on aarch64, imports OK. video worker: built (manimpango, moderngl and pycairo compile from source, about 12 min under emulation), runs on aarch64 as the non-root user, rendered a mind map scene (51 s under emulation) |
 | Video quality eval (2026-11-05, real Groq) | 8 topics, baseline (model alone) → first full version: visual share 0.67 → 1.00, right scene type 4 → 8 of 8, sourced numbers stated 2 → 6, unsupported numbers 2 → 0, expected facts 0.97 → 0.94. Reading those scripts found problems the scores hid (a true bond angle deleted, Mars missing from a list, no chart for sizes), since fixed except the chart. Retest of the 4 most affected topics after fixes: water molecule has its 3D model and 104.5°; "Sizes of the planets" still gets a comparison, not a chart. Not all 8 re-run after the final fixes: the free daily token limit was reached |
 | Real video, all steps but the AI call (2026-11-05) | A Groq script written earlier replayed through real Wikipedia, Gnani, Commons, Manim and FFmpeg: narrated 58 s video (60 s asked) at 1280×720 with a mind map, photo and chart. Frames compared with subtitle times: branches appear as they are spoken. A mind-map video through the live model is **not yet confirmed** after the final fixes (two attempts failed with an unusable draft before them; the daily limit stopped a retest and the raw output could not be captured) |
 | Tests after this work (2026-11-05) | Backend 367 passed, 1 skipped; real render test with all 14 templates 1 passed; frontend 202 passed (`--maxWorkers=2`); Playwright E2E 12 passed; `alembic check` clean |
@@ -106,6 +109,8 @@
 - Fact-checking is by the AI against a short Wikipedia excerpt: it reduces errors but can't guarantee none, and the excerpt may not contain every key fact. Reference text is English only.
 - Mind maps can be explained only by the video's own script; a saved map from the Mind Maps page can't be turned into a video yet.
 - This network intermittently fails certificate checks on outgoing connections (retried, never bypassed).
+- Production media (videos, pictures) lives on the server's disk; there's no object storage, and media isn't in the backups.
+- Off-server copies of backups are manual (`scp`, see DEPLOYMENT.md).
 - Pictures depend on what Wikimedia Commons has; a topic with no good free picture gets text instead. Searches are in English.
 - 3D scenes take ~1–1.5 min each to render at 720p (at most two per video). Molecules use ideal VSEPR angles (lone pairs aren't drawn); only single bonds are shown.
 - Videos are stored on the local disk (`media/`); there's no cloud storage or automatic clean-up of old files yet (deleting a video removes its files).
@@ -120,7 +125,7 @@
 - Page-level headers for the web app (CSP, Permissions-Policy for the microphone, HSTS) are set by the web server in Phase 15; the API sets its own.
 
 ## Next (after approval)
-- Phase 15 ⏸: deployment — production compose with HTTPS (Caddy), page security headers, trusted proxy headers, object storage option, backups, monitoring, DEPLOYMENT.md. Needs your choice of host.
+- Deploy: create the Oracle server and DuckDNS name (DEPLOYMENT.md steps 1–3), then follow steps 4–7 on the server.
 
 ## Blockers / pending inputs
 - Re-run a live mind-map video and the full 8-topic eval once Groq's daily allowance has refilled.

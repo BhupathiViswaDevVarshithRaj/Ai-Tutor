@@ -1,0 +1,141 @@
+# Production: everything on one server behind Caddy (HTTPS). See DEPLOYMENT.md.
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Settings and secrets come from .env next to this file (made by deploy/setup-env.sh).
+# Only Caddy is reachable from outside (ports 80 and 443); the rest talk on a private network.
+name: ai-tutor-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m" # keep logs from filling the disk
+    max-file: "3"
+
+x-app-env: &app-env
+  APP_ENV: production
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  REDIS_URL: redis://redis:6379/0
+  MEDIA_ROOT: /media
+  FRONTEND_URL: https://${DOMAIN:?set DOMAIN in .env}
+  CORS_ORIGINS: https://${DOMAIN}
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data # certificates: keep, or Let's Encrypt limits re-issuing
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    env_file: ${ENV_FILE:-.env}
+    environment: *app-env
+    volumes:
+      - media:/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *logging
+
+  video-worker:
+    build:
+      context: .
+      dockerfile: docker/video-worker.Dockerfile
+    restart: unless-stopped
+    user: aitutor # the same user as the API, so the API can delete the files it makes
+    env_file: ${ENV_FILE:-.env}
+    environment: *app-env
+    volumes:
+      - media:/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *logging
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aitutor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-aitutor}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+  # A database backup every day at about the time it starts; 14 days are kept in ./backups.
+  backup:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-aitutor}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-aitutor}
+      KEEP_DAYS: "14"
+    volumes:
+      - ./backups:/backups
+      - ./deploy/backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "/backup.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+  # Optional: keeps the DuckDNS name pointing at this server if its address ever changes.
+  #   docker compose -f docker-compose.prod.yml --profile duckdns up -d
+  duckdns:
+    profiles: ["duckdns"]
+    image: lscr.io/linuxserver/duckdns:latest
+    restart: unless-stopped
+    environment:
+      SUBDOMAINS: ${DUCKDNS_SUBDOMAIN:-}
+      TOKEN: ${DUCKDNS_TOKEN:-}
+      LOG_FILE: "false"
+    logging: *logging
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
+  caddy_data:
+  caddy_config:

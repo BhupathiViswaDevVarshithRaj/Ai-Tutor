@@ -14,10 +14,14 @@ RUN apt-get update \
 WORKDIR /app
 COPY backend/pyproject.toml ./
 COPY backend/app ./app
-RUN pip install --no-cache-dir ".[video]"
+RUN pip install --no-cache-dir ".[video]" \
+    && useradd --create-home --uid 10001 aitutor \
+    && mkdir -p /media && chown aitutor /media
 
 ENV PYTHONUNBUFFERED=1 \
     MEDIA_ROOT=/media
+# Development runs as root over a bind mount; production runs as `aitutor` (same uid as the
+# API, which serves and deletes these files): see docker-compose.prod.yml.
 
 # `python -m` puts /app first on the path, so code mounted at /app/app (see compose) is used.
 CMD ["python", "-m", "arq", "app.workers.video.WorkerSettings"]

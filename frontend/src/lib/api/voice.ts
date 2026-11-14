@@ -55,6 +55,9 @@ const MAX_RECONNECTS = 6
 const PING_MS = 25_000
 
 function voiceUrl(): string {
+  // Vercel rewrites can't carry WebSockets, so production points straight at the API host.
+  const wsOrigin = import.meta.env.VITE_WS_ORIGIN as string | undefined
+  if (wsOrigin) return `${wsOrigin.replace(/\/$/, '')}${API_BASE}/voice/ws`
   const { protocol, host } = window.location
   return `${protocol === 'https:' ? 'wss' : 'ws'}://${host}${API_BASE}/voice/ws`
 }

@@ -1,0 +1,27 @@
+# Never send secrets or local state into an image build.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+deploy/.env
+backups/
+media/
+
+# Large local folders the images rebuild themselves.
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/*.egg-info
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+backend/evals/results
+
+.git
+.vscode
+.idea
+.claude

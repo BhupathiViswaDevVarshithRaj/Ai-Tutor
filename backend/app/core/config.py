@@ -129,6 +129,15 @@ class Settings(BaseSettings):
         # whichever folder the server happens to be started from.
         return value if value.is_absolute() else (REPO_DIR / value).resolve()
 
+    @field_validator(
+        "anthropic_api_key", "groq_api_key", "groq_video_api_key", "gnani_api_key", mode="after"
+    )
+    @classmethod
+    def _strip_key(cls, value: str) -> str:
+        # Keys pasted into a hosting dashboard often pick up a space or newline, which makes
+        # the HTTP header invalid and surfaces as a confusing "connection" error.
+        return value.strip()
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:

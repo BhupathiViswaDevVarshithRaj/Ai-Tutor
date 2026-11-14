@@ -110,6 +110,7 @@ def _map_error(exc: Exception) -> LLMError:
         logger.error("Groq API error %s: %s", exc.status_code, exc)
         return LLMError("The tutor ran into a problem. Please try again.")
     if isinstance(exc, groq.APIConnectionError):  # includes APITimeoutError
+        logger.error("Groq connection failed: %r (cause: %r)", exc, exc.__cause__)
         return LLMError("Couldn't reach the AI service. Please try again.")
     logger.exception("Unexpected LLM failure", exc_info=exc)
     return LLMError("The tutor ran into a problem. Please try again.")

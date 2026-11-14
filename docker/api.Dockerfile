@@ -23,4 +23,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
 
 # --proxy-headers: the client address comes from Caddy's X-Forwarded-For, so sign-in rate
 # limits count real visitors (only Caddy can reach this port; it isn't published).
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${API_WORKERS:-2} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${API_WORKERS:-2} --proxy-headers --forwarded-allow-ips='*'"]

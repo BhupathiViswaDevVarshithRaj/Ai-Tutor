@@ -1,0 +1,65 @@
+# Render Blueprint for the backend: API (Docker), Postgres (pgvector) and Key Value (Redis).
+# Render dashboard -> New -> Blueprint -> pick this repo. The frontend runs on Vercel
+# (https://ai-tutorrr.vercel.app) and reaches this API through frontend/vercel.json rewrites.
+services:
+  - type: web
+    name: ai-tutorrr-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./docker/api.Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: API_WORKERS
+        value: "1"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://ai-tutorrr.vercel.app
+      - key: FRONTEND_URL
+        value: https://ai-tutorrr.vercel.app
+      - key: POSTGRES_HOST
+        fromDatabase: { name: ai-tutorrr-db, property: host }
+      - key: POSTGRES_PORT
+        fromDatabase: { name: ai-tutorrr-db, property: port }
+      - key: POSTGRES_DB
+        fromDatabase: { name: ai-tutorrr-db, property: database }
+      - key: POSTGRES_USER
+        fromDatabase: { name: ai-tutorrr-db, property: user }
+      - key: POSTGRES_PASSWORD
+        fromDatabase: { name: ai-tutorrr-db, property: password }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: ai-tutorrr-redis, property: connectionString }
+      - key: LLM_PROVIDER
+        value: auto
+      # Secrets: Render asks for these when the Blueprint is created (leave blank to skip).
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GNANI_API_KEY
+        sync: false
+      - key: STT_PROVIDER
+        value: mock
+      - key: TTS_PROVIDER
+        value: mock
+
+  - type: keyvalue
+    name: ai-tutorrr-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: noeviction
+    ipAllowList: []   # only reachable from Render services
+
+databases:
+  - name: ai-tutorrr-db
+    plan: free
+    region: singapore
+    databaseName: aitutor
+    user: aitutor
+    ipAllowList: []

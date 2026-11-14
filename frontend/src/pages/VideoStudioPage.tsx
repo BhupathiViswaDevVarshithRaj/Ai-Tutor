@@ -76,8 +76,17 @@ export default function VideoStudioPage() {
       />
       {worker.data && !worker.data.online && (
         <Alert>
-          The video worker isn’t running, so new videos wait in the queue. Start it with{' '}
-          <code className="rounded bg-surface px-1">docker compose --profile video up -d video-worker</code>.
+          {import.meta.env.DEV ? (
+            <>
+              The video worker isn’t running, so new videos wait in the queue. Start it with{' '}
+              <code className="rounded bg-surface px-1">docker compose --profile video up -d video-worker</code>.
+            </>
+          ) : (
+            <>
+              The video maker is offline right now. You can still ask for a video: it waits in the
+              queue and starts automatically when the video maker is back.
+            </>
+          )}
         </Alert>
       )}
 

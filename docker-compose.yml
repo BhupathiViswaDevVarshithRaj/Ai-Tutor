@@ -59,6 +59,25 @@ services:
       redis:
         condition: service_healthy
 
+  # The same worker on your PC, rendering for the Render deploy: it connects to Render's
+  # Postgres and Key Value over the internet and saves videos in the database
+  # (MEDIA_STORAGE=database). Settings in .env.cloud-worker (see deploy/cloud-worker.env.example):
+  #   docker compose --profile cloud-worker up -d --build video-worker-cloud
+  video-worker-cloud:
+    profiles: ["cloud-worker"]
+    build:
+      context: .
+      dockerfile: docker/video-worker.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env.cloud-worker
+        required: true
+    environment:
+      MEDIA_STORAGE: database
+      POSTGRES_SSL: "true"
+    volumes:
+      - ./backend/app:/app/app:ro
+
 volumes:
   pgdata:
   redisdata:

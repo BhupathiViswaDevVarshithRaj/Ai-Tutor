@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     postgres_db: str = "aitutor"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+    # True for a database reached over the internet (e.g. Render's external URL).
+    postgres_ssl: bool = False
 
     redis_url: str = "redis://localhost:6379/0"
 
@@ -94,6 +96,9 @@ class Settings(BaseSettings):
     # --- Video generation (Phase 12) ---
     # Rendered files live here; the video worker container mounts the same folder.
     media_root: Path = REPO_DIR / "media"
+    # local = files under MEDIA_ROOT (shared folder); database = media_blobs table, for hosts
+    # where the API and the worker can't share a disk (Render + a worker on another machine).
+    media_storage: Literal["local", "database"] = "local"
     # Manim quality: l = 480p15 (fast), m = 720p30, h = 1080p60.
     video_quality: Literal["l", "m", "h"] = "m"
     video_job_timeout_seconds: int = 1200

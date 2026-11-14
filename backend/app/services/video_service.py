@@ -16,7 +16,7 @@ from app.db.enums import VideoStatus
 from app.db.models import MediaAsset, User, VideoJob
 from app.schemas.videos import VideoCreate, VideoOut
 from app.services.learning_service import get_lesson
-from app.video.storage import LocalMediaStorage, media_url
+from app.video.storage import MediaStorage, media_url
 
 VIDEO_QUEUE = "aitutor:video"
 HEALTH_KEY = f"{VIDEO_QUEUE}:health-check"
@@ -191,7 +191,7 @@ async def cancel(session: AsyncSession, user_id: uuid.UUID, job_id: uuid.UUID) -
 
 
 async def delete(
-    session: AsyncSession, storage: LocalMediaStorage, user_id: uuid.UUID, job_id: uuid.UUID
+    session: AsyncSession, storage: MediaStorage, user_id: uuid.UUID, job_id: uuid.UUID
 ) -> None:
     job = await get_job(session, user_id, job_id)
     if job.status.active:
@@ -199,6 +199,6 @@ async def delete(
     assets = list((await assets_for(session, [job])).values())
     await session.delete(job)
     for asset in assets:
-        storage.delete(asset.storage_key)
+        await storage.remove(asset.storage_key)
         await session.delete(asset)
     await session.commit()

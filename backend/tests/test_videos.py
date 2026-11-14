@@ -14,7 +14,7 @@ from app.ai.speech.base import AudioResult
 from app.ai.speech.mock import MockTTSProvider
 from app.core.config import get_settings
 from app.db.enums import VideoStatus
-from app.db.models import MediaAsset, VideoJob
+from app.db.models import MediaAsset, MediaBlob, VideoJob
 from app.db.session import session_scope
 from app.services.video_service import get_video_queue
 from app.video.images import FoundImage
@@ -386,3 +386,37 @@ async def test_without_a_picture_finder_picture_scenes_become_text(api, queue):
     done = (await api.get(f"{V}/{job['id']}", headers=headers)).json()
     assert [t for t, _, _ in renderer.calls] == ["title", "bullets", "bullets", "title"]
     assert done["image_credits"] == []
+
+
+async def test_database_storage_serves_and_deletes_files(api, queue, monkeypatch):
+    # MEDIA_STORAGE=database: what Render uses, where the worker can't share a disk with the API.
+    monkeypatch.setattr(get_settings(), "media_storage", "database")
+    headers = await register_user(api)
+    job = await create(api, headers)
+    await run_video_job(uuid.UUID(job["id"]), deps())
+    done = (await api.get(f"{V}/{job['id']}", headers=headers)).json()
+    assert done["status"] == "completed"
+    async with session_scope() as session:
+        keys = list(await session.scalars(select(MediaAsset.storage_key)))
+        blobs = list(await session.scalars(select(MediaBlob.key)))
+    assert sorted(keys) == sorted(blobs)
+    assert not any((get_settings().media_root / k).exists() for k in keys)
+
+    video = await api.get(done["video_url"])
+    assert video.status_code == 200 and video.headers["content-type"] == "video/mp4"
+    assert video.content.startswith(b"\x00\x00\x00\x18ftypmp42") and len(video.content) == 5012
+    part = await api.get(done["video_url"], headers={"Range": "bytes=10-19"})
+    assert part.status_code == 206 and part.content == video.content[10:20]
+    assert part.headers["content-range"] == "bytes 10-19/5012"
+    tail = await api.get(done["video_url"], headers={"Range": "bytes=-12"})
+    assert tail.status_code == 206 and tail.content == video.content[-12:]
+    open_end = await api.get(done["video_url"], headers={"Range": "bytes=5000-"})
+    assert open_end.content == video.content[5000:]
+    too_far = await api.get(done["video_url"], headers={"Range": "bytes=9000-"})
+    assert too_far.status_code == 416
+    vtt = await api.get(done["subtitles_url"])
+    assert vtt.text.startswith("WEBVTT")
+
+    assert (await api.delete(f"{V}/{job['id']}", headers=headers)).status_code == 204
+    async with session_scope() as session:
+        assert list(await session.scalars(select(MediaBlob))) == []

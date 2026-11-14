@@ -37,6 +37,9 @@ services:
         fromService: { type: keyvalue, name: ai-tutorrr-redis, property: connectionString }
       - key: LLM_PROVIDER
         value: auto
+      # Videos are rendered by a worker on another machine and stored in Postgres.
+      - key: MEDIA_STORAGE
+        value: database
       # Secrets: Render asks for these when the Blueprint is created (leave blank to skip).
       - key: GROQ_API_KEY
         sync: false

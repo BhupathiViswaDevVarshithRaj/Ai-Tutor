@@ -4,7 +4,17 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, ForeignKey, Index, Integer, SmallInteger, String, Text, text
+from sqlalchemy import (
+    BigInteger,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    SmallInteger,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,6 +42,15 @@ class MediaAsset(CreatedAtMixin, Base):
     meta: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")
     )
+
+
+class MediaBlob(CreatedAtMixin, Base):
+    """A stored file's bytes, keyed like MediaAsset.storage_key (MEDIA_STORAGE=database)."""
+
+    __tablename__ = "media_blobs"
+
+    key: Mapped[str] = mapped_column(String(500), primary_key=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary)
 
 
 class VideoJob(CreatedAtMixin, Base):

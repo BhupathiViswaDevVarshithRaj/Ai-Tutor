@@ -218,8 +218,8 @@ async def run_video_job(job_id: uuid.UUID, deps: VideoDeps) -> None:
 
         base = f"{user_id}/videos/{job_id}"
         total_ms = round(sum(durations) * 1000)
-        video_size = deps.storage.put_file(f"{base}/video.mp4", final)
-        vtt_size = deps.storage.put_text(f"{base}/subtitles.vtt", to_vtt(cues))
+        video_size = await deps.storage.save_file(f"{base}/video.mp4", final)
+        vtt_size = await deps.storage.save_text(f"{base}/subtitles.vtt", to_vtt(cues))
         async with session_scope() as session:
             video = MediaAsset(
                 user_id=user_id,

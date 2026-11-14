@@ -1,8 +1,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import Response
 
 from app.api.deps import CurrentUser, SessionDep, UserRateLimiter
 from app.core.errors import NotFound
@@ -10,13 +10,13 @@ from app.db.models import MediaAsset
 from app.schemas.videos import VideoCreate, VideoOut, VideoWorkerOut
 from app.services import video_service
 from app.services.video_service import VideoQueue, get_video_queue
-from app.video.storage import LocalMediaStorage, check_media_token, get_storage
+from app.video.storage import MediaStorage, check_media_token, get_storage
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 media_router = APIRouter(prefix="/media", tags=["media"])
 
 Queue = Annotated[VideoQueue, Depends(get_video_queue)]
-Storage = Annotated[LocalMediaStorage, Depends(get_storage)]
+Storage = Annotated[MediaStorage, Depends(get_storage)]
 VIDEO_LIMIT = [Depends(UserRateLimiter("video", "video_rate_limit", "video_rate_window_seconds"))]
 
 
@@ -68,17 +68,15 @@ async def delete_video(
 
 @media_router.get("/{asset_id}", include_in_schema=False)
 async def get_media(
-    asset_id: uuid.UUID, token: str, session: SessionDep, storage: Storage
-) -> FileResponse:
+    asset_id: uuid.UUID, token: str, request: Request, session: SessionDep, storage: Storage
+) -> Response:
     """A stored file, for a valid signed link (supports Range requests for video seeking)."""
     if not check_media_token(asset_id, token):
         raise NotFound("File")
     asset = await session.get(MediaAsset, asset_id)
     if asset is None:
         raise NotFound("File")
-    path = storage.path(asset.storage_key)
-    if not path.is_file():
+    response = await storage.response(asset.storage_key, asset.mime_type, request)
+    if response is None:
         raise NotFound("File")
-    return FileResponse(
-        path, media_type=asset.mime_type, headers={"Cache-Control": "private, max-age=3600"}
-    )
+    return response

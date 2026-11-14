@@ -1,19 +1,39 @@
 """Where media files live, and short-lived signed links to them.
 
-Files are stored under MEDIA_ROOT by key (e.g. "<user>/videos/<job>/video.mp4"). The API and
-the video worker container share that folder. Browsers fetch media through
+Files are stored by key (e.g. "<user>/videos/<job>/video.mp4"), either under MEDIA_ROOT
+(MEDIA_STORAGE=local: the API and the video worker container share that folder) or in the
+media_blobs table (MEDIA_STORAGE=database: for hosts like Render, where the worker runs
+elsewhere and can't share a disk with the API). Browsers fetch media through
 `GET /api/v1/media/{asset_id}` with a signed, expiring token, because <video> and <track>
 can't send an Authorization header.
 """
 
 import hashlib
 import hmac
+import re
 import shutil
 import time
 import uuid
 from pathlib import Path
+from typing import Protocol
+
+from fastapi import Request
+from fastapi.responses import FileResponse, Response
+from sqlalchemy import delete, func, select
+from sqlalchemy.dialects.postgresql import insert
 
 from app.core.config import get_settings
+from app.db.models import MediaBlob
+from app.db.session import session_scope
+
+CACHE_HEADERS = {"Cache-Control": "private, max-age=3600"}
+
+
+class MediaStorage(Protocol):
+    async def save_file(self, key: str, source: Path) -> int: ...
+    async def save_text(self, key: str, text: str) -> int: ...
+    async def remove(self, key: str) -> None: ...
+    async def response(self, key: str, mime_type: str, request: Request) -> Response | None: ...
 
 
 class LocalMediaStorage:
@@ -41,9 +61,83 @@ class LocalMediaStorage:
     def delete(self, key: str) -> None:
         self.path(key).unlink(missing_ok=True)
 
+    async def save_file(self, key: str, source: Path) -> int:
+        return self.put_file(key, source)
 
-def get_storage() -> LocalMediaStorage:
-    return LocalMediaStorage(get_settings().media_root)
+    async def save_text(self, key: str, text: str) -> int:
+        return self.put_text(key, text)
+
+    async def remove(self, key: str) -> None:
+        self.delete(key)
+
+    async def response(self, key: str, mime_type: str, request: Request) -> Response | None:
+        path = self.path(key)
+        if not path.is_file():
+            return None
+        return FileResponse(path, media_type=mime_type, headers=CACHE_HEADERS)
+
+
+_RANGE = re.compile(r"bytes=(\d*)-(\d*)$")
+
+
+class DatabaseMediaStorage:
+    """Files as rows in media_blobs. Videos are a few MB, so this is fine for a small deploy."""
+
+    async def save_file(self, key: str, source: Path) -> int:
+        return await self._put(key, source.read_bytes())
+
+    async def save_text(self, key: str, text: str) -> int:
+        return await self._put(key, text.encode("utf-8"))
+
+    async def _put(self, key: str, data: bytes) -> int:
+        stmt = insert(MediaBlob).values(key=key, data=data)
+        stmt = stmt.on_conflict_do_update(index_elements=[MediaBlob.key], set_={"data": data})
+        async with session_scope() as session:
+            await session.execute(stmt)
+            await session.commit()
+        return len(data)
+
+    async def remove(self, key: str) -> None:
+        async with session_scope() as session:
+            await session.execute(delete(MediaBlob).where(MediaBlob.key == key))
+            await session.commit()
+
+    async def response(self, key: str, mime_type: str, request: Request) -> Response | None:
+        async with session_scope() as session:
+            size = await session.scalar(
+                select(func.octet_length(MediaBlob.data)).where(MediaBlob.key == key)
+            )
+            if size is None:
+                return None
+            start, end = 0, size - 1
+            match = _RANGE.match(request.headers.get("range", "").strip())
+            ranged = bool(match and (match[1] or match[2]))
+            if match and ranged:
+                if match[1]:
+                    start = int(match[1])
+                    end = min(int(match[2]), size - 1) if match[2] else size - 1
+                else:  # "bytes=-N": the last N bytes
+                    start = max(size - int(match[2]), 0)
+                if start >= size or start > end:
+                    return Response(status_code=416, headers={"Content-Range": f"bytes */{size}"})
+            # substring() is 1-based; only the requested part leaves the database.
+            chunk = await session.scalar(
+                select(func.substring(MediaBlob.data, start + 1, end - start + 1)).where(
+                    MediaBlob.key == key
+                )
+            )
+        headers = {**CACHE_HEADERS, "Accept-Ranges": "bytes"}
+        if ranged:
+            headers["Content-Range"] = f"bytes {start}-{end}/{size}"
+            return Response(chunk, status_code=206, media_type=mime_type, headers=headers)
+        return Response(chunk, media_type=mime_type, headers=headers)
+
+
+def get_storage() -> MediaStorage:
+    settings = get_settings()
+    if settings.media_storage == "database":
+        return DatabaseMediaStorage()
+    return LocalMediaStorage(settings.media_root)
 
 
 def _signature(asset_id: uuid.UUID, expires: int) -> str:

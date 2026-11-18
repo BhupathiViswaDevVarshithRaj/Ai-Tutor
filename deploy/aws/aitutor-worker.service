@@ -1,0 +1,26 @@
+[Unit]
+Description=AI Tutor video worker
+After=network-online.target postgresql.service redis-server.service aitutor-api.service
+Wants=redis-server.service
+
+[Service]
+User=aitutor
+Group=aitutor
+WorkingDirectory=/opt/aitutor/backend
+EnvironmentFile=/etc/aitutor/aitutor.env
+Environment=PYTHONUNBUFFERED=1 XDG_CACHE_HOME=/var/lib/aitutor/cache
+ExecStart=/opt/aitutor/venv/bin/python -m arq app.workers.video.WorkerSettings
+Restart=on-failure
+RestartSec=5
+# Rendering is CPU-heavy: at most one core, and only the time PolarBear and PingBuyers leave idle.
+CPUQuota=100%
+CPUWeight=10
+Nice=15
+MemoryMax=2G
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/aitutor
+
+[Install]
+WantedBy=multi-user.target

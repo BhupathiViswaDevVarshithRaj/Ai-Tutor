@@ -1,0 +1,27 @@
+[Unit]
+Description=AI Tutor API
+After=network-online.target postgresql.service redis-server.service
+Wants=redis-server.service
+
+[Service]
+User=aitutor
+Group=aitutor
+WorkingDirectory=/opt/aitutor/backend
+EnvironmentFile=/etc/aitutor/aitutor.env
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/opt/aitutor/venv/bin/alembic upgrade head
+# --proxy-headers: sign-in limits count the visitor's address from Caddy, the only client of this port.
+ExecStart=/opt/aitutor/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 7420 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+# PolarBear runs on this server; AI Tutor must never starve it.
+MemoryMax=1G
+CPUWeight=30
+Nice=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/aitutor
+
+[Install]
+WantedBy=multi-user.target

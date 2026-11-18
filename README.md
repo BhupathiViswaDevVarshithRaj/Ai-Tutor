@@ -74,8 +74,13 @@ docker compose --profile video up -d --build video-worker   # first build ≈ 2.
 
 ## Deploying
 
-To put the app online for free (Oracle Cloud Always Free + DuckDNS, HTTPS by Caddy), follow
-[DEPLOYMENT.md](DEPLOYMENT.md). Production runs from `docker-compose.prod.yml`.
+Live at https://aitutor-3440c2af.sslip.io, on the AWS server shared with PolarBear and PingBuyers
+(systemd services `aitutor-api` and `aitutor-worker`, behind that server's Caddy). Ship the committed
+code with `deploy/aws/push.sh ubuntu@52.64.194.175`. A new server, or a new domain once its DNS points
+at the server: `ssh ubuntu@HOST 'sudo bash -s DOMAIN' < deploy/aws/setup.sh`, then
+`sudo systemctl restart aitutor-api`. Settings and keys are in `/etc/aitutor/aitutor.env` on the server.
+
+The Docker setup for one server of its own (Oracle Cloud + DuckDNS) is in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Tests
 
